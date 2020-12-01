@@ -2,13 +2,13 @@
 AWSCLI SAML SSO
 ===============
 
-.. image:: https://img.shields.io/pypi/v/awscli_saml_sso.svg
+.. image:: https://img.shields.io/pypi/v/awscli_saml_sso
         :target: https://pypi.org/pypi/awscli_saml_sso
 
-.. image:: https://img.shields.io/pypi/l/awscli_saml_sso.svg
+.. image:: https://img.shields.io/pypi/l/awscli_saml_sso
         :target: https://pypi.org/pypi/awscli_saml_sso
 
-.. image:: https://img.shields.io/pypi/pyversions/awscli_saml_sso.svg
+.. image:: https://img.shields.io/pypi/pyversions/awscli_saml_sso
         :target: https://pypi.org/pypi/awscli_saml_sso
 
 awscli_saml_sso is a command line tool that aims to get temporary credentials from SAML identity provider in order to authenticate to awscli.
