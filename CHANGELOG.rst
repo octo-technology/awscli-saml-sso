@@ -2,6 +2,11 @@
 Changelog
 =========
 
+HEAD (Unreleased)
+-----------------
+
+* Fix github homepage from setuptools configuration
+
 0.1.0 (2020-12-01)
 ------------------
 

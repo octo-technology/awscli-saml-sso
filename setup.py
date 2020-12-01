@@ -14,7 +14,7 @@ setup(
     author_email="benjamin.brabant@octo.com",
     python_requires=">=3.5",
     license="GNU General Public License v3",
-    url="https://github.com/octo-technology/awscli_saml_sso",
+    url="https://github.com/octo-technology/awscli-saml-sso",
 
     packages=find_packages(),
     description="""awscli_saml_sso is a command line tool that aims to get temporary credentials from SAML identity 
