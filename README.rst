@@ -84,6 +84,11 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 Please make sure to update tests as appropriate.
 
+Credits
+-------
+
+`AWS - How to Implement Federated API and CLI Access Using SAML 2.0 and AD FS <https://aws.amazon.com/blogs/security/how-to-implement-federated-api-and-cli-access-using-saml-2-0-and-ad-fs>`_
+
 License
 -------
 
