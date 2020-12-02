@@ -2,8 +2,8 @@
 Changelog
 =========
 
-HEAD (Unreleased)
------------------
+0.1.1 (2020-12-02)
+------------------
 
 * Fix github homepage from setuptools configuration
 * Add a --version option to display current version from command line
