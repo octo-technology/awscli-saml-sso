@@ -6,6 +6,7 @@ HEAD (Unreleased)
 -----------------
 
 * Fix github homepage from setuptools configuration
+* Add a --version option to display current version from command line
 
 0.1.0 (2020-12-01)
 ------------------

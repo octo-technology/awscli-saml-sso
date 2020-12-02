@@ -9,6 +9,7 @@ from os.path import expanduser, devnull
 
 from time import sleep
 
+import click
 from selenium import webdriver
 from webdriver_manager.firefox import GeckoDriverManager
 
@@ -21,7 +22,8 @@ awssamlhomepage = "https://signin.aws.amazon.com/saml"
 
 ##########################################################################
 
-
+@click.command()
+@click.version_option()
 def main(args=None):
     print("Please configure your identity provider url [https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices]:")
     idpentryurl = input()
