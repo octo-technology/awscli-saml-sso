@@ -2,6 +2,11 @@
 Changelog
 =========
 
+HEAD (Unreleased)
+-----------------
+
+* Detect automatically Chrome or Firefox browser install on user operating system to rely on
+
 0.1.1 (2020-12-02)
 ------------------
 

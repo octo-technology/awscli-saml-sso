@@ -1,3 +1,4 @@
+import logging
 import sys
 from pathlib import Path
 
@@ -5,12 +6,13 @@ import boto3
 import configparser
 import base64
 import xml.etree.ElementTree as ET
-from os.path import expanduser, devnull
+from os.path import devnull
 
 from time import sleep
 
 import click
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 
 ##########################################################################
@@ -18,6 +20,9 @@ from webdriver_manager.firefox import GeckoDriverManager
 
 # awssamlhomepage: The AWS SAML start page that end the authentication process
 awssamlhomepage = "https://signin.aws.amazon.com/saml"
+
+# supported_browsers: Browsers kind supported by selenium webdriver
+supported_browsers = ["CHROME", "FIREFOX"]
 
 
 ##########################################################################
@@ -28,10 +33,14 @@ def main(args=None):
     print("Please configure your identity provider url [https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices]:")
     idpentryurl = input()
 
-    print("Waiting for AWS SAML homepage...", end="")
-    browser = webdriver.Firefox(executable_path=GeckoDriverManager().install(), service_log_path=devnull)
+    print("Try to find browser on operating system...")
+    browser = _find_installed_browser()
+    if not browser:
+        raise RuntimeError(f"Unable to find browser install on operating system among {supported_browsers}")
     browser.implicitly_wait(30)
     browser.get(idpentryurl)
+
+    print("Waiting for AWS SAML homepage...", end="")
     while browser.current_url != awssamlhomepage:
         print(".", end="")
         sleep(1)
@@ -126,6 +135,22 @@ def main(args=None):
 
     print("Simple API example listing all S3 buckets:")
     print(buckets)
+
+
+def _find_installed_browser():
+    browser = None
+    for browser_kind in supported_browsers:
+        try:
+            if browser_kind == "CHROME":
+                browser = webdriver.Chrome(executable_path=ChromeDriverManager().install(), service_log_path=devnull)
+            elif browser_kind == "FIREFOX":
+                browser = webdriver.Firefox(executable_path=GeckoDriverManager().install(), service_log_path=devnull)
+            else:
+                raise ValueError(f"Unsupported \"{browser_kind}\" webdriver browser")
+            break
+        except Exception as e:
+            logging.debug(f"Exception occured while loading {browser_kind}.", e)
+    return browser
 
 
 if __name__ == "__main__":
