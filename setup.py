@@ -35,8 +35,9 @@ setup(
     include_package_data=True,
     install_requires=[
         "boto3==1.16.26",
-        "webdriver-manager==3.2.2",
+        "click==7.1.2",
         "selenium==3.141.0",
+        "webdriver-manager==3.2.2",
     ],
     entry_points={
         "console_scripts": [
