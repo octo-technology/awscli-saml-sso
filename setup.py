@@ -37,6 +37,7 @@ setup(
         "boto3==1.16.26",
         "click==7.1.2",
         "selenium==3.141.0",
+        "selenium-wire==2.1.2",
         "webdriver-manager==3.2.2",
     ],
     entry_points={
