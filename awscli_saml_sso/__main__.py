@@ -1,17 +1,15 @@
+import base64
+import configparser
 import logging
 import sys
+import urllib.parse
+import xml.etree.ElementTree as ET
+from os.path import devnull
 from pathlib import Path
 
 import boto3
-import configparser
-import base64
-import xml.etree.ElementTree as ET
-from os.path import devnull
-
-from time import sleep
-
 import click
-from selenium import webdriver
+from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 
@@ -20,6 +18,9 @@ from webdriver_manager.firefox import GeckoDriverManager
 
 # awssamlhomepage: The AWS SAML start page that end the authentication process
 awssamlhomepage = "https://signin.aws.amazon.com/saml"
+
+# awssamlhomepage_wait_timeout: The delay in second we wait for awssamlhomepage
+awssamlhomepage_wait_timeout = 120
 
 # supported_browsers: Browsers kind supported by selenium webdriver
 supported_browsers = ["CHROME", "FIREFOX"]
@@ -37,15 +38,11 @@ def main(args=None):
     browser = _find_installed_browser()
     if not browser:
         raise RuntimeError(f"Unable to find browser install on operating system among {supported_browsers}")
-    browser.implicitly_wait(30)
     browser.get(idpentryurl)
 
     print("Waiting for AWS SAML homepage...", end="")
-    while browser.current_url != awssamlhomepage:
-        print(".", end="")
-        sleep(1)
-    print()
-    assertion = browser.find_element_by_css_selector("input[name=\"SAMLResponse\"]").get_property("value")
+    request = browser.wait_for_request(awssamlhomepage, timeout=awssamlhomepage_wait_timeout)
+    assertion = urllib.parse.unquote(str(request.body).split("=")[1])
     browser.quit()
 
     # Parse the returned assertion and extract the authorized roles
@@ -149,7 +146,7 @@ def _find_installed_browser():
                 raise ValueError(f"Unsupported \"{browser_kind}\" webdriver browser")
             break
         except Exception as e:
-            logging.debug(f"Exception occured while loading {browser_kind}.", e)
+            logging.debug(f"Exception occurred while loading {browser_kind}.", e)
     return browser
 
 

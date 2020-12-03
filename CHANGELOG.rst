@@ -6,6 +6,9 @@ HEAD (Unreleased)
 -----------------
 
 * Detect automatically Chrome or Firefox browser install on user operating system to rely on
+* Retrieve SAML response from HTTP request body instead of parsing HTML page
+* Fix authentication exception raised when no role was attached to the authenticated account
+* Fix authentication that remain stuck when user was associated with only one AWS role
 
 0.1.1 (2020-12-02)
 ------------------
