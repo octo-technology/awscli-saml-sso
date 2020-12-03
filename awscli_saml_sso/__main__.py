@@ -67,14 +67,23 @@ def main(args=None):
     # If I have more than one role, ask the user which one they want,
     # otherwise just proceed
     print("")
-    if len(awsroles) > 1:
+    if len(awsroles) == 0:
+        print("Your account is not associated to any role, can't continue.")
+        sys.exit(0)
+    else:
         i = 0
         print("Please choose the role you would like to assume:")
         for awsrole in awsroles:
             print("[", i, "]: ", awsrole.split(",")[0])
             i += 1
-        print("Selection: ", end=" ")
-        selectedroleindex = input()
+
+        if len(awsroles) == 1:
+            print("Your account is associated to only one role which has been automatically selected.")
+            selectedroleindex = 0
+        else:
+            print("Selection: ", end=" ")
+            selectedroleindex = input()
+
 
         # Basic sanity check of input
         if int(selectedroleindex) > (len(awsroles) - 1):
@@ -83,9 +92,6 @@ def main(args=None):
 
         role_arn = awsroles[int(selectedroleindex)].split(",")[0]
         principal_arn = awsroles[int(selectedroleindex)].split(",")[1]
-    else:
-        role_arn = awsroles[0].split(",")[0]
-        principal_arn = awsroles[0].split(",")[1]
 
     # Use the assertion to get an AWS STS token using Assume Role with SAML
     client = boto3.client("sts")
