@@ -4,5 +4,7 @@ include CHANGELOG.rst
 include LICENSE
 include README.rst
 
+include awscli_saml_sso/logger.cfg
+
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

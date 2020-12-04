@@ -13,6 +13,9 @@ from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 
+from logging.config import fileConfig
+from pkg_resources import resource_filename
+
 ##########################################################################
 # Variables
 
@@ -25,12 +28,26 @@ awssamlhomepage_wait_timeout = 120
 # supported_browsers: Browsers kind supported by selenium webdriver
 supported_browsers = ["CHROME", "FIREFOX"]
 
+# supported_log_levels: Supported log levels used to override python logging default level
+supported_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+# default_log_level: Default python log level to configure when not user provided
+default_log_level = "WARNING"
 
 ##########################################################################
 
+
 @click.command()
+@click.option("--log-level", envvar="ASS_LOG_LEVEL",
+              type=click.Choice(supported_log_levels, case_sensitive=False),
+              default=default_log_level,
+              help=f"Configure python log level to print (default: {default_log_level})")
 @click.version_option()
-def main(args=None):
+def main(log_level):
+    fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={
+        "log_level": log_level,
+    })
+
     print("Please configure your identity provider url [https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices]:")
     idpentryurl = input()
 
@@ -83,7 +100,6 @@ def main(args=None):
         else:
             print("Selection: ", end=" ")
             selectedroleindex = input()
-
 
         # Basic sanity check of input
         if int(selectedroleindex) > (len(awsroles) - 1):
