@@ -2,8 +2,8 @@
 Changelog
 =========
 
-HEAD (Unreleased)
------------------
+0.2.0 (2020-12-04)
+------------------
 
 * Detect automatically Chrome or Firefox browser install on user operating system to rely on
 * Retrieve SAML response from HTTP request body instead of parsing HTML page
