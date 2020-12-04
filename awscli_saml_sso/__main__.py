@@ -1,6 +1,7 @@
 import base64
 import configparser
 import logging
+import os
 import sys
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -44,6 +45,7 @@ default_log_level = "WARNING"
               help=f"Configure python log level to print (default: {default_log_level})")
 @click.version_option()
 def main(log_level):
+    os.environ["WDM_LOG_LEVEL"] = str(logging.getLevelName(log_level))
     fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={
         "log_level": log_level,
     })
