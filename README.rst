@@ -86,6 +86,122 @@ Features
 * Select among retrieved AWS roles you are allowed to assume
 * Store temporary credentials in aws configuration files
 
+.. _how-it-works:
+How it works
+------------
+
+This section aims to explain how awscli-saml-sso works internally. When you authenticate through awscli-saml-sso, you will follow this workflow:
+
+* First a web browser is opened at the given identity provider start url
+* You will authenticate with your credentials (and MFA if required)
+* If authentication succeed, you will be redirected to `AWS SAML REDIRECT URL <https://signin.aws.amazon.com/saml>`_ which leads to several cases:
+  * If you belong to multiple roles, a web page let you choose which one you would like to assume
+  * If you belong to only one role, you should be automatically redirected to AWS console authenticated through the given role
+  * If you do not belong to any role, an error page is returned to you
+* Whatever the case, your browser should close automatically and awscli-saml-sso will report the SAML authentication result to you.
+  * Given the case, you should need to choose a role to assume
+  * or the authenticate workflow stop here if you do not belong to any role
+* Finally awscli-saml-sso has automatically provided a ``saml`` profile in `your aws credentials file <~/.aws/credentials>`_ which is authenticated through AWS STS temporary credentials which should by default expire in one hour.
+
+
+What is the awscli-saml-sso secret sauce to make the work transparently for you?
+
+At first, we choose to not make any assumption on the way your identity provider let you authenticate (how is named username/password fields, would you need to answer a challenge, required MFA step, ...).
+Instead we choose to open a web browser which will let you follow your regular SSO authentication workflow.
+This web browser is driven by selenium, awscli-saml-sso will try to detect which browser is installed on your system and required web driver is automatically downloaded for you.
+
+When authentication workflow ended, you will be redirected to `AWS SAML REDIRECT URL <https://signin.aws.amazon.com/saml>`_.
+Here, thanks to a proxy configured in the previously opened web browser, we are able to detect that you reach redirect url, thus we can close web browser from now on.
+
+In the redirect HTTP request, we find a ``SAMLResponse`` attribute in body that is base64 encoded, which correspond to SAML response in XML format.
+You can find an example `here <docs/examples/keycloak_saml_response.xml>`_.
+
+The most interesting part for us is the ``saml:AttributeStatement`` block enclosed here, which should contains those attributes:
+
+* RoleSessionName: should correspond to your authenticated username
+* Role: list of AWS roles you belong to that you are authorized to assume
+* SessionDuration: optional attribute that can override default one hour session duration from identity provider side
+
+.. code-block:: xml
+
+    <saml:AttributeStatement>
+        <saml:Attribute FriendlyName="Session Duration"
+                        Name="https://aws.amazon.com/SAML/Attributes/SessionDuration"
+                        NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+            <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">28800
+            </saml:AttributeValue>
+        </saml:Attribute>
+        <saml:Attribute FriendlyName="Session Name" Name="https://aws.amazon.com/SAML/Attributes/RoleSessionName"
+                        NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+            <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">admin
+            </saml:AttributeValue>
+        </saml:Attribute>
+        <saml:Attribute FriendlyName="Session Role" Name="https://aws.amazon.com/SAML/Attributes/Role"
+                        NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+            <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">
+                arn:aws:iam::000000000000:role/Role.User,arn:aws:iam::000000000000:saml-provider/SamlExampleProvider
+            </saml:AttributeValue>
+            <saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">
+                arn:aws:iam::000000000000:role/Role.Admin,arn:aws:iam::000000000000:saml-provider/SamlExampleProvider
+            </saml:AttributeValue>
+        </saml:Attribute>
+    </saml:AttributeStatement>
+
+
+In our case, we will parse `SAML Role Attribute <https://aws.amazon.com/SAML/Attributes/Role>`_ to print to user the list of AWS roles it is allowed to assume.
+Each role is in the form of ``<aws_role_arn>,<aws_identity_provider_arn>``, for instance: ``arn:aws:iam::000000000000:role/Role.User,arn:aws:iam::000000000000:saml-provider/SamlExampleProvider``.
+
+Finally we call `aws assume_role_with_saml <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sts.html#STS.Client.assume_role_with_saml>`_ through boto3 python sdk which expect the following arguments:
+
+* role_arn: the ``aws_role_arn`` retrieved previously
+* principal_arn: the ``aws_identity_provider_arn`` retrieved previously
+* saml_assertion: the base64 encoded saml response retrieved previously
+
+AWS STS response will be retrieved and stored in a ``saml`` profile configured this way:
+
+.. code-block:: python
+
+    config.set("saml", "aws_access_key_id", sts_response["Credentials"]["AccessKeyId"])
+    config.set("saml", "aws_secret_access_key", sts_response["Credentials"]["SecretAccessKey"])
+    config.set("saml", "aws_session_token", sts_response["Credentials"]["SessionToken"])
+    config.set("saml", "aws_security_token", sts_response["Credentials"]["SessionToken"])
+
+
+Note that you can call `assume-role-with-saml <https://docs.aws.amazon.com/cli/latest/reference/sts/assume-role-with-saml.html> directly from ``awscli`` this way:
+
+.. code-block:: shell
+
+    awslocal sts assume-role-with-saml \
+        --role-arn arn:aws:iam::000000000000:role/Role.Admin \
+        --principal-arn arn:aws:iam::000000000000:saml-provider/SamlExampleProvider \
+        --saml-assertion $(cat docs/examples/keycloak_saml_response.xml | base64)
+
+... which should give you response like:
+
+.. code-block:: json
+
+    {
+        "Credentials": {
+            "AccessKeyId": "ASIA...",
+            "SecretAccessKey": "...",
+            "SessionToken": "FQoGZXIvYXdzEBYaDwL8pPz/cNvhUKkibZTashetWcPahlTMbaBUvDwXxjiehDkRQGYYUQrTrMdv7+6SinGiDNBiB7ZKEoyfDja6vhHwnBP2UcY/XozN+MFFPGEMhHcsUqPApwOErN37uHAM5kIOukhGlNmIPvPVWZtDoWryAuygKbqZTWwKecCwtURG2I0KF8MpS+s6SaG6EOUl5OJf/mJJQvH725q2VOWUk7HBezFCIXO+t3L8SzMygdt2FNzwUenhazYvDs2ngSlsbFbAaeeMHikZrWgTs6GkUv1uyAknpTRnInmwBDHb7SZAqpDmc7Q9+b+NXTcO1qzx/eMarHHlFQyeEEI3BEc=",
+            "Expiration": "2020-12-06T18:54:38.114Z"
+        },
+        "AssumedRoleUser": {
+            "AssumedRoleId": "AROA3X42LBCD9KGW7O43L:benjamin.brabant",
+            "Arn": "arn:aws:sts::123456789012:assumed-role/Role.Admin/benjamin.brabant"
+        },
+        "Subject": "AROA3X42LBCD9KGW7O43L:benjamin.brabant",
+        "SubjectType": "persistent",
+        "Issuer": "http://localhost:3000/",
+        "Audience": "https://signin.aws.amazon.com/saml",
+        "NameQualifier": "B64EncodedStringOfHashOfIssuerAccountIdAndUserId="
+    }
+
 .. _contributing:
 Contributing
 ------------
