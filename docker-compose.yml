@@ -29,7 +29,7 @@ services:
 
   localstack:
     container_name: ass-localstack
-    image: localstack/localstack:0.12.2
+    image: localstack/localstack:0.12.3
     restart: always
     ports:
       - "${LOCALSTACK_EXPOSED_PORT}:4566"
