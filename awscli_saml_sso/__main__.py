@@ -43,8 +43,10 @@ default_log_level = "WARNING"
               type=click.Choice(supported_log_levels, case_sensitive=False),
               default=default_log_level,
               help=f"Configure python log level to print (default: {default_log_level})")
+@click.option("--endpoint-url", envvar="ASS_ENDPOINT_URL",
+              help="Override AWS API endpoint url (mainly for testing purpose)")
 @click.version_option()
-def main(log_level):
+def main(log_level, endpoint_url):
     os.environ["WDM_LOG_LEVEL"] = str(logging.getLevelName(log_level))
     fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={
         "log_level": log_level,
@@ -112,7 +114,7 @@ def main(log_level):
         principal_arn = awsroles[int(selectedroleindex)].split(",")[1]
 
     # Use the assertion to get an AWS STS token using Assume Role with SAML
-    client = boto3.client("sts")
+    client = boto3.client("sts", endpoint_url=endpoint_url)
     sts_response = client.assume_role_with_saml(RoleArn=role_arn, PrincipalArn=principal_arn, SAMLAssertion=assertion)
 
     # Write the AWS STS token into the AWS credential file
@@ -150,7 +152,8 @@ def main(log_level):
     s3 = boto3.client("s3",
                       aws_access_key_id=sts_response["Credentials"]["AccessKeyId"],
                       aws_secret_access_key=sts_response["Credentials"]["SecretAccessKey"],
-                      aws_session_token=sts_response["Credentials"]["SessionToken"])
+                      aws_session_token=sts_response["Credentials"]["SessionToken"],
+                      endpoint_url=endpoint_url)
     response = s3.list_buckets()
     buckets = [bucket["Name"] for bucket in response["Buckets"]]
 

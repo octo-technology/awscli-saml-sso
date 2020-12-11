@@ -1,3 +1,5 @@
+awscli==1.18.192
+awscli-local==0.9
 bump2version==1.0.1
 twine==3.2.0
 Pygments==2.7.2

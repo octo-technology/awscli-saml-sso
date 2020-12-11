@@ -1,0 +1,73 @@
+version: '3.7'
+
+services:
+  keycloak:
+    container_name: ass-keycloak
+    image: jboss/keycloak:11.0.3
+    command: >
+      -Dkeycloak.migration.action=import
+      -Dkeycloak.migration.provider=singleFile
+      -Dkeycloak.migration.file=/docker-entrypoint-initkeycloak.d/master-realm-with-users.json
+      -Dkeycloak.migration.strategy=OVERWRITE_EXISTING
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres
+      DB_SCHEMA: public
+      DB_DATABASE: ${KEYCLOAK_DATABASE_DB}
+      DB_USER: ${KEYCLOAK_DATABASE_USER}
+      DB_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
+      KEYCLOAK_USER: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    ports:
+      - ${KEYCLOAK_EXPOSED_PORT}:8080
+    depends_on:
+      - postgres
+    volumes:
+      - ./docker/keycloak:/docker-entrypoint-initkeycloak.d
+    networks:
+      - ass-network
+
+  localstack:
+    container_name: ass-localstack
+    image: localstack/localstack:0.12.2
+    restart: always
+    ports:
+      - "${LOCALSTACK_EXPOSED_PORT}:4566"
+    environment:
+      LOCALSTACK_DEBUG: 1
+      LOCALSTACK_SERVICES: iam, sts, s3
+      LOCALSTACK_START_WEB: 0
+      LOCALSTACK_DATA_DIR: /tmp/localstack/data
+      LOCALSTACK_DOCKER_HOST: unix:///var/run/docker.sock
+      LOCALSTACK_S3_BUCKET_NAME: ${LOCALSTACK_S3_BUCKET_NAME}
+      LOCALSTACK_SAML_PROVIDER_NAME: ${LOCALSTACK_SAML_PROVIDER_NAME}
+    volumes:
+      - localstack-s3-data:/tmp/localstack
+      - ./docker/localstack:/docker-entrypoint-initaws.d
+    networks:
+      - ass-network
+
+  postgres:
+    container_name: ass-postgres
+    image: library/postgres:13.1
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DATABASE_DB}
+      POSTGRES_USER: ${KEYCLOAK_DATABASE_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DATABASE_PASSWORD}
+    networks:
+      - ass-network
+
+volumes:
+  localstack-s3-data:
+      name: ass-localstack-s3-data
+      driver: local
+  postgres_data:
+      name: ass-postgres-data
+      driver: local
+
+networks:
+  ass-network:
+    name: ass-network
+    driver: bridge
