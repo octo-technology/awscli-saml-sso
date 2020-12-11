@@ -13,12 +13,14 @@ AWSCLI SAML SSO
 
 awscli_saml_sso is a command line tool that aims to get temporary credentials from SAML identity provider in order to authenticate to awscli.
 
+.. _requirements:
 Requirements
 ------------
 
 * Python 3.5+
 * Google Chrome, Chromium or Firefox web browser installed on operating system
 
+.. _installation:
 Installation
 ------------
 
@@ -28,6 +30,7 @@ You need a fully functional python 3 environment, then you can install tool from
 
     pip install awscli-saml-sso
 
+.. _usage:
 Usage
 -----
 
@@ -75,7 +78,7 @@ OR
 
     AWS_PROFILE=saml aws ec2 describe-instances
 
-
+.. _features:
 Features
 --------
 
@@ -83,6 +86,7 @@ Features
 * Select among retrieved AWS roles you are allowed to assume
 * Store temporary credentials in aws configuration files
 
+.. _contributing:
 Contributing
 ------------
 
@@ -90,11 +94,13 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 Please make sure to update tests as appropriate.
 
+.. _credits:
 Credits
 -------
 
 `AWS - How to Implement Federated API and CLI Access Using SAML 2.0 and AD FS <https://aws.amazon.com/blogs/security/how-to-implement-federated-api-and-cli-access-using-saml-2-0-and-ad-fs>`_
 
+.. _license:
 License
 -------
 
