@@ -13,6 +13,12 @@ AWSCLI SAML SSO
 
 awscli_saml_sso is a command line tool that aims to get temporary credentials from SAML identity provider in order to authenticate to awscli.
 
+Requirements
+------------
+
+* Python 3.5+
+* Google Chrome, Chromium or Firefox web browser installed on operating system
+
 Installation
 ------------
 
