@@ -2,8 +2,8 @@
 Changelog
 =========
 
-HEAD (Unreleased)
------------------
+0.2.1 (2020-12-11)
+------------------
 
 * Configure default log level to WARN in order to get printed text in terminal uncluttered by logs
 * Add a ``--log-level`` option and corresponding ``ASS_LOG_LEVEL`` environment variable to override default log level
