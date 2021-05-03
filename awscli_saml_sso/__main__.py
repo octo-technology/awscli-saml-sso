@@ -45,8 +45,10 @@ default_log_level = "WARNING"
               help=f"Configure python log level to print (default: {default_log_level})")
 @click.option("--endpoint-url", envvar="ASS_ENDPOINT_URL",
               help="Override AWS API endpoint url (mainly for testing purpose)")
+@click.option("--duration-seconds", default=3600, show_default=True,
+              help="Configure the expiration time of the token where the value can range from 900 seconds (15 minutes) to 129600 seconds (36 hours)")
 @click.version_option()
-def main(log_level, endpoint_url):
+def main(log_level, endpoint_url, duration_seconds):
     os.environ["WDM_LOG_LEVEL"] = str(logging.getLevelName(log_level))
     fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={
         "log_level": log_level,
@@ -115,7 +117,7 @@ def main(log_level, endpoint_url):
 
     # Use the assertion to get an AWS STS token using Assume Role with SAML
     client = boto3.client("sts", endpoint_url=endpoint_url)
-    sts_response = client.assume_role_with_saml(RoleArn=role_arn, PrincipalArn=principal_arn, SAMLAssertion=assertion)
+    sts_response = client.assume_role_with_saml(RoleArn=role_arn, PrincipalArn=principal_arn, SAMLAssertion=assertion, DurationSeconds=duration_seconds)
 
     # Write the AWS STS token into the AWS credential file
     aws_credentials_path = Path.home() / ".aws" / "credentials"
