@@ -2,6 +2,15 @@
 Changelog
 =========
 
+0.2.4 (2023-10-25)
+------------------
+
+* Add the ability to run with headless browser, inputing information in CLI
+* Headless is designed for Microsoft AD login pages. Browser can still be used with ``--use-browser``
+* Store information in ``~/.awscli_saml_sso_credentials`` and passwords in python Keyring
+* Add a ``--get-chrome-driver`` to get Google Chrome driver
+* Bump Selenium and Selenium wire versions
+
 0.2.1 (2020-12-11)
 ------------------
 

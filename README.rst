@@ -17,7 +17,7 @@ awscli_saml_sso is a command line tool that aims to get temporary credentials fr
 Requirements
 ------------
 
-* Python 3.5+
+* Python 3.8+
 * Google Chrome, Chromium or Firefox web browser installed on operating system
 
 .. _installation:
@@ -34,13 +34,19 @@ You need a fully functional python 3 environment, then you can install tool from
 Usage
 -----
 
+First ensure you have Google Chrome installed and get the latest suitable driver:
+
+.. code-block:: shell
+
+    awscli_saml_sso --get-chrome-driver
+
 You only need to run the following command in terminal:
 
 .. code-block:: shell
 
     awscli_saml_sso
 
-    # Please configure your identity provider url [https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices]:
+    # Please enter your identity provider url of the form https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices
     > ...
 
     # Please choose the role you would like to assume:
@@ -62,9 +68,15 @@ You only need to run the following command in terminal:
     # ['your-lovely-bucket', ...]
 
 1. ask you to fill in required identity provider url in the form of ``https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices``
-2. open web browser to fulfil SSO authentication through your identity provider
+2. opens a headless web browser to fulfil SSO authentication through your identity provider, asking you to input username, password and MFA
 3. retrieve attached AWS roles and ask you to choose role you would like to assume
 4. provide a ``saml`` profile in ``/home/.aws/credentials`` filled with temporary credentials
+
+After a successfull run with identiy provider nickname `MyTenant`, you can run this to avoid any prompt other than MFA
+
+.. code-block:: shell
+
+    awscli_saml_sso --use-stored --idp-nickname=MyTenant
 
 At the end, you just need to use AWS cofigured ``saml`` profile to authenticate your ``awscli`` calls
 
@@ -274,9 +286,9 @@ You can run awscli-saml-sso this way to target localstack services endpoint inst
 
 .. code-block:: shell
 
-    awscli_saml_sso --endpoint-url=http://localhost:4566
+    awscli_saml_sso --endpoint-url=http://localhost:4566 --use-browser
     # OR
-    ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso
+    ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso --use-browser
 
 You can now use the following url as your identity provider url when asked by awscli-saml-sso: http://localhost:8080/auth/realms/master/protocol/saml/clients/amazon-aws
 If needed, you will find more details about the local environment setup in the following sections.

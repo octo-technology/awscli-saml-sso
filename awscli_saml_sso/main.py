@@ -3,31 +3,18 @@ import configparser
 import logging
 import os
 import sys
-import urllib.parse
 import xml.etree.ElementTree as ET
-from os.path import devnull
 from pathlib import Path
-
 import boto3
 import click
-from seleniumwire import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.firefox import GeckoDriverManager
-
 from logging.config import fileConfig
 from pkg_resources import resource_filename
 
+from awscli_saml_sso.driver import get_google_chrome_driver
+from awscli_saml_sso.browser import login_and_get_assertion
+
 ##########################################################################
 # Variables
-
-# awssamlhomepage: The AWS SAML start page that end the authentication process
-awssamlhomepage = "https://signin.aws.amazon.com/saml"
-
-# awssamlhomepage_wait_timeout: The delay in second we wait for awssamlhomepage
-awssamlhomepage_wait_timeout = 120
-
-# supported_browsers: Browsers kind supported by selenium webdriver
-supported_browsers = ["CHROME", "FIREFOX"]
 
 # supported_log_levels: Supported log levels used to override python logging default level
 supported_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -45,26 +32,38 @@ default_log_level = "WARNING"
               help=f"Configure python log level to print (default: {default_log_level})")
 @click.option("--endpoint-url", envvar="ASS_ENDPOINT_URL",
               help="Override AWS API endpoint url (mainly for testing purpose)")
+@click.option('--show-browser', is_flag=True, help="Do not use headless mode")
+@click.option('--use-browser', is_flag=True, help="Input username and password in browser")
+@click.option('--idp-nickname', help="Nickname of the identity provider URL")
+@click.option('--use-stored', is_flag=True, help="Use stored values for username and password without prompt")
+@click.option('--get-chrome-driver', is_flag=True, help="Install Google Chrome driver and exit")
+@click.option('--role-selection', type=int, default=-1, help="Index of the role to select among available roles")
 @click.version_option()
-def main(log_level, endpoint_url):
+
+def main(log_level,
+         endpoint_url,
+         show_browser,
+         use_browser,
+         idp_nickname,
+         use_stored,
+         get_chrome_driver,
+         role_selection):
+    if get_chrome_driver:
+        get_google_chrome_driver()
+        return
+
     os.environ["WDM_LOG_LEVEL"] = str(logging.getLevelName(log_level))
     fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={
         "log_level": log_level,
     })
 
-    print("Please configure your identity provider url [https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices]:")
-    idpentryurl = input()
+    if use_browser:
+        show_browser = True
 
-    print("Try to find browser on operating system...")
-    browser = _find_installed_browser()
-    if not browser:
-        raise RuntimeError(f"Unable to find browser install on operating system among {supported_browsers}")
-    browser.get(idpentryurl)
-
-    print("Waiting for AWS SAML homepage...", end="")
-    request = browser.wait_for_request(awssamlhomepage, timeout=awssamlhomepage_wait_timeout)
-    assertion = urllib.parse.unquote(str(request.body).split("=")[1])
-    browser.quit()
+    assertion, idp_nickname = login_and_get_assertion(show_browser=show_browser,
+                                                      idp_nickname=idp_nickname,
+                                                      use_stored=use_stored,
+                                                      use_browser=use_browser)
 
     # Parse the returned assertion and extract the authorized roles
     awsroles = []
@@ -103,7 +102,10 @@ def main(log_level, endpoint_url):
             selectedroleindex = 0
         else:
             print("Selection: ", end=" ")
-            selectedroleindex = input()
+            if role_selection >= 0:
+                selectedroleindex = role_selection
+            else:
+                selectedroleindex = input()
 
         # Basic sanity check of input
         if int(selectedroleindex) > (len(awsroles) - 1):
@@ -139,42 +141,38 @@ def main(log_level, endpoint_url):
         config.write(configfile)
 
     # Give the user some basic info as to what has just happened
-    print("\n\n----------------------------------------------------------------")
+    print("\n----------------------------------------------------------------")
     print("Your new access key pair has been stored in the AWS configuration file {0} under the saml profile.".format(
         aws_credentials_path))
     print("Note that it will expire at {0}.".format(sts_response["Credentials"]["Expiration"]))
     print("After this time, you may safely rerun this script to refresh your access key pair.")
     print(
         "To use this credential, call the AWS CLI with the --profile option (e.g. aws --profile saml ec2 describe-instances).")
-    print("----------------------------------------------------------------\n\n")
+    print("----------------------------------------------------------------\n")
 
-    # Use the AWS STS token to list all of the S3 buckets
-    s3 = boto3.client("s3",
+    # Use the AWS STS token to get caller identity
+    s3 = boto3.client("sts",
                       aws_access_key_id=sts_response["Credentials"]["AccessKeyId"],
                       aws_secret_access_key=sts_response["Credentials"]["SecretAccessKey"],
                       aws_session_token=sts_response["Credentials"]["SessionToken"],
                       endpoint_url=endpoint_url)
-    response = s3.list_buckets()
-    buckets = [bucket["Name"] for bucket in response["Buckets"]]
+    response = s3.get_caller_identity()
+    print(f"UserId = {response['UserId']}")
+    print(f"Arn = {response['Arn']}")
+    print("----------------------------------------------------------------\n")
 
-    print("Simple API example listing all S3 buckets:")
-    print(buckets)
-
-
-def _find_installed_browser():
-    browser = None
-    for browser_kind in supported_browsers:
-        try:
-            if browser_kind == "CHROME":
-                browser = webdriver.Chrome(executable_path=ChromeDriverManager().install(), service_log_path=devnull)
-            elif browser_kind == "FIREFOX":
-                browser = webdriver.Firefox(executable_path=GeckoDriverManager().install(), service_log_path=devnull)
-            else:
-                raise ValueError(f"Unsupported \"{browser_kind}\" webdriver browser")
-            break
-        except Exception as e:
-            logging.debug(f"Exception occurred while loading {browser_kind}.", e)
-    return browser
+    print("Success !")
+    next_time_args = [f'--idp-nickname={idp_nickname}', f'--role-selection={selectedroleindex}', '--use-stored']
+    if set(sys.argv).union(set(next_time_args)) != sys.argv:
+        # print recommendation for next time use if above switches were not all used
+        next_time = ' '.join([os.path.basename(sys.argv[0])] +
+                            [arg for arg in sys.argv[1:]
+                            if
+                            arg not in next_time_args and
+                            arg not in ['--show-browser']] +
+                            next_time_args)
+        print("Next time you can go faster by using:")
+        print(next_time)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ with open("README.rst") as readme_file:
 
 setup(
     name="awscli_saml_sso",
-    version="0.2.1",
+    version="0.2.4",
 
     author="Benjamin Brabant",
     author_email="benjamin.brabant@octo.com",
@@ -26,23 +26,24 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
 
     include_package_data=True,
     install_requires=[
         "boto3==1.16.26",
         "click==7.1.2",
-        "selenium==3.141.0",
-        "selenium-wire==2.1.2",
-        "webdriver-manager==3.2.2",
+        "selenium==4.12.0",
+        "selenium-wire==5.1.0",
+        "webdriver-manager==4.0.0",
+        "keyring"
     ],
     entry_points={
         "console_scripts": [
-            "awscli_saml_sso = awscli_saml_sso.__main__:main",
+            "awscli_saml_sso = awscli_saml_sso.main:main",
         ],
     },
 )
