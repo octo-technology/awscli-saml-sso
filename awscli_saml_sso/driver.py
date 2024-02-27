@@ -31,6 +31,7 @@ def get_google_chrome_driver():
     else:
         major_version = match.group(1)
 
+    # TODO read this instead : https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json
     driver_version_base_url = environ.get("CHROME_DRIVER_VERISON_BASE_URL", "googlechromelabs.github.io/chrome-for-testing")
     driver_version_url = f'https://{driver_version_base_url}/LATEST_RELEASE_{major_version}'
     response = requests.get(driver_version_url)
