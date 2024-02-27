@@ -4,6 +4,7 @@ import subprocess
 import requests
 import platform
 import urllib.request
+from os import environ
 
 def get_google_chrome_driver():
     _platform = sys.platform
@@ -30,7 +31,8 @@ def get_google_chrome_driver():
     else:
         major_version = match.group(1)
 
-    driver_version_url = f'https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_{major_version}'
+    driver_version_base_url = environ.get("CHROME_DRIVER_VERISON_BASE_URL", "googlechromelabs.github.io/chrome-for-testing")
+    driver_version_url = f'https://{driver_version_base_url}/LATEST_RELEASE_{major_version}'
     response = requests.get(driver_version_url)
     if response.ok:
         driver_version = response.text
@@ -47,7 +49,8 @@ def get_google_chrome_driver():
         else:
             arch = 'arm64'
 
-    driver_url = f'https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/{driver_version}/{os}{arch}/chromedriver-{os}{arch}.zip'
+    driver_base_url = environ.get("CHROME_DRIVER_BASE_URL", "storage.googleapis.com/chrome-for-testing-public")
+    driver_url = f'https://{driver_base_url}/{driver_version}/{os}{arch}/chromedriver-{os}{arch}.zip'
 
     temporary_zip_file = '/tmp/chromedriver.zip'
     driver_final_location = '/usr/local/bin/chromedriver'
@@ -55,6 +58,7 @@ def get_google_chrome_driver():
         urllib.request.urlretrieve(driver_url, temporary_zip_file)
     except:
         print(f'Could not download Google Chrome driver from {driver_url}')
+        raise SystemExit
 
     import zipfile
     with zipfile.ZipFile(temporary_zip_file,"r") as zip_ref:
