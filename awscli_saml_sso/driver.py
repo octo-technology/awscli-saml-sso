@@ -55,10 +55,12 @@ def get_google_chrome_driver():
 
     temporary_zip_file = '/tmp/chromedriver.zip'
     driver_final_location = '/usr/local/bin/chromedriver'
+    mac_os_hint = 'If you are on MacOS, try to get google chrome driver with: brew install --cask chromedriver'
     try:
-        urllib.request.urlretrieve(driver_url, temporary_zip_file)
+        urllib.request.urlretrieve(driver_url, temporary_zip_file, )
     except Exception as e:
         print(f'Could not download Google Chrome driver from {driver_url}: {str(e)}')
+        print(mac_os_hint)
         raise SystemExit
 
     import zipfile
@@ -71,11 +73,13 @@ def get_google_chrome_driver():
                                         driver_final_location])
     if move_driver_command.returncode != 0:
         print(f'Could not place driver in {driver_final_location}')
+        print(mac_os_hint)
         raise SystemExit
 
     chmod_driver_command = subprocess.run(['sudo', 'chmod', 'a+x', driver_final_location])
     if chmod_driver_command.returncode != 0:
         print(f'Could not make {driver_final_location} executable')
+        print(mac_os_hint)
         raise SystemExit
     else:
         print('Success !')
