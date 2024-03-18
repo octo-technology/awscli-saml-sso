@@ -57,8 +57,8 @@ def get_google_chrome_driver():
     driver_final_location = '/usr/local/bin/chromedriver'
     try:
         urllib.request.urlretrieve(driver_url, temporary_zip_file)
-    except:
-        print(f'Could not download Google Chrome driver from {driver_url}')
+    except Exception as e:
+        print(f'Could not download Google Chrome driver from {driver_url}: {str(e)}')
         raise SystemExit
 
     import zipfile
