@@ -39,7 +39,8 @@ setup(
         "selenium==4.12.0",
         "selenium-wire==5.1.0",
         "webdriver-manager==4.0.0",
-        "keyring"
+        "keyring",
+	    "blinker<1.8.0"
     ],
     entry_points={
         "console_scripts": [
