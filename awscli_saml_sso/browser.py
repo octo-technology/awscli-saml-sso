@@ -38,10 +38,11 @@ def start_chrome_browser(show_browser: bool):
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
-    print(f"Starting{'' if show_browser else ' headless'} browser")
+    print(f"⚙️ Starting{'' if show_browser else ' headless'} browser")
+    print("\n⚠️ If you get a WARNING about chromedriver version please run: awscli_saml_sso --get-chrome-driver\n")
     browser = webdriver.Chrome(options=options)
     if not browser:
-        raise SystemExit(f"Unable to find Google Chrome, please install it then use --get-chrome-driver")
+        raise SystemExit(f"🛑 Unable to find Google Chrome, please install it then run: awscli_saml_sso --get-chrome-driver")
     else:
         return browser
 
@@ -61,24 +62,24 @@ def loop_input_password(browser: Chrome, idp_password: str, password_elem):
                       EC.presence_of_element_located((By.XPATH, "//input[@value='Se connecter']"))))
         password_button.click()
     except StaleElementReferenceException as e:
-        print("Trying again")
+        print("🔄 Trying again")
         loop_input_password(browser, idp_password, None)
 
 
 def handle_code(browser: Chrome, element):
     element.click()
     # prompt for the MFA code and enter it
-    mfa_code = input("Please enter MFA code: ")
+    mfa_code = input("⌨️ Please enter MFA code: ")
     element.send_keys(mfa_code + Keys.ENTER)
     try:
         # wait 1 second at most and fail if MFA code is rejected
         WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.ID, "idSpan_SAOTCC_Error_OTC")))
         save_page(browser.page_source, "error_wrong_code")
-        raise SystemExit("Your MFA code is wrong, " + failure_message)
+        raise SystemExit("❌ Your MFA code is wrong, " + failure_message)
     except TimeoutException:
         # after 1 second with no rejection, it should mean MFA code is accepted
         pass
-    print("MFA code is correct, waiting for AWS SAML homepage...")
+    print("✅ MFA code is correct, waiting for AWS SAML homepage...")
 
 
 def handle_password_and_or_mfa(browser: Chrome,
@@ -99,7 +100,7 @@ def handle_password_and_or_mfa(browser: Chrome,
         handle_code(browser, next_elem)
 
     elif next_elem.get_attribute('id') in ["idRichContext_DisplaySign", "idRemoteNGC_DisplaySign"]:
-        print(f'Enter this on you authentication app, then wait : {next_elem.text}')
+        print(f'⌨️ Enter this on you authentication app, then wait : {next_elem.text}')
 
     elif next_elem.get_attribute('type') == "password":
         # get the password and enter it
@@ -109,11 +110,11 @@ def handle_password_and_or_mfa(browser: Chrome,
 
     elif next_elem.get_attribute('id') == "passwordError":
         save_page(browser.page_source, "error_incorrect_passwd")
-        raise SystemExit("Your password is incorrect, " + failure_message)
+        raise SystemExit("❌ Your password is incorrect, " + failure_message)
 
     elif next_elem.get_attribute('id') == "usernameError":
         save_page(browser.page_source, "error_unknown_email")
-        raise SystemExit("Your email is not known for the identity provider, " + failure_message)
+        raise SystemExit("❌ Your email is not known for the identity provider, " + failure_message)
     
     handle_after_mfa(browser)
 
@@ -130,7 +131,7 @@ def handle_after_mfa(browser: Chrome):
                     ))
         if next_elem.get_attribute('id') == "idDiv_SAASDS_Title":
             save_page(browser.page_source, "error_request_denied")
-            raise SystemExit("Request was denied, could be unsuccessfull MFA, " + failure_message)
+            raise SystemExit("❌ Request was denied, could be unsuccessfull MFA, " + failure_message)
         else:
             next_elem.click()
     except TimeoutException: 
@@ -142,7 +143,7 @@ def save_page(page_source: str, prefix: str):
     _, temp_file_name = tempfile.mkstemp(prefix=prefix + '_', suffix='.html', text=True)
     with open(temp_file_name, "w", encoding='utf-8') as f:
         f.write(page_source)
-        print(f'Saved page {prefix} to {temp_file_name}, you can send it to support')
+        print(f'💾 Saved page {prefix} to {temp_file_name}, you can send it to support')
 
 
 def login_and_get_assertion(show_browser: bool=False,
@@ -160,7 +161,7 @@ def login_and_get_assertion(show_browser: bool=False,
             # load the host of the IDP page
             parsing = urlparse(idpentryurl)
             url = f'{parsing.scheme}://{parsing.netloc}'
-            print(f'Visiting {url} first')
+            print(f'🌐 Visiting {url} first')
         browser.get(url)
         try:
             if not use_browser:
@@ -185,11 +186,11 @@ def login_and_get_assertion(show_browser: bool=False,
                 return assertion, idp_nickname
             except TimeoutException:
                 save_page(browser.page_source, "error_timeout")
-                raise SystemExit(f"Could not complete authentication within {navigation_timeout} seconds, " + failure_message)
+                raise SystemExit(f"❌ Could not complete authentication within {navigation_timeout} seconds, " + failure_message)
             
         except TimeoutException:
             save_page(browser.page_source, "error_login_elem")
-            raise SystemExit(f"Could not get login element from {idpentryurl}, check the URL and " + failure_message)
+            raise SystemExit(f"❌ Could not get login element from {idpentryurl}, check the URL and " + failure_message)
 
     except Exception as e:
         save_page(browser.page_source, "error_unknown")
@@ -197,5 +198,5 @@ def login_and_get_assertion(show_browser: bool=False,
     
     finally:
         # close the headless browser in all circumstances
-        print("Closing browser")
+        print("🗑️ Closing browser")
         browser.quit()

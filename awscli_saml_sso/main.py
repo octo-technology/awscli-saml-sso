@@ -88,20 +88,20 @@ def main(log_level,
     # otherwise just proceed
     print("")
     if len(awsroles) == 0:
-        print("Your account is not associated to any role, can't continue.")
+        print("❌ Your account is not associated to any role, can't continue.")
         sys.exit(0)
     else:
         i = 0
-        print("Please choose the role you would like to assume:")
+        print("⌨️ Please choose the role you would like to assume:")
         for awsrole in awsroles:
             print("[", i, "]: ", awsrole.split(",")[0])
             i += 1
 
         if len(awsroles) == 1:
-            print("Your account is associated to only one role which has been automatically selected.")
+            print("✅ Your account is associated to only one role which has been automatically selected.")
             selectedroleindex = 0
         else:
-            print("Selection: ", end=" ")
+            print("⌨️ Selection: ", end=" ")
             if role_selection >= 0:
                 selectedroleindex = role_selection
             else:
@@ -109,7 +109,7 @@ def main(log_level,
 
         # Basic sanity check of input
         if int(selectedroleindex) > (len(awsroles) - 1):
-            print("You selected an invalid role index, please try again")
+            print("🔄 You selected an invalid role index, please try again")
             sys.exit(0)
 
         role_arn = awsroles[int(selectedroleindex)].split(",")[0]
@@ -161,7 +161,7 @@ def main(log_level,
     print(f"Arn = {response['Arn']}")
     print("----------------------------------------------------------------\n")
 
-    print("Success !")
+    print("✅ Success !")
     next_time_args = [f'--idp-nickname={idp_nickname}', f'--role-selection={selectedroleindex}', '--use-stored']
     if set(sys.argv).union(set(next_time_args)) != sys.argv:
         # print recommendation for next time use if above switches were not all used
@@ -171,7 +171,7 @@ def main(log_level,
                             arg not in next_time_args and
                             arg not in ['--show-browser']] +
                             next_time_args)
-        print("Next time you can go faster by using:")
+        print("💡 Next time you can go faster by using:")
         print(next_time)
 
 
