@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.2.6 (2024-06-18)
+------------------
+
+* Create a fresh profile for Edge or Chrome per identity provider
+* Remove ``--use-browser`` option and keep ``--show-browser`` (i.e. without headless mode)
+
 0.2.5 (2024-06-17)
 ------------------
 

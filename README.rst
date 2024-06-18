@@ -286,9 +286,9 @@ You can run awscli-saml-sso this way to target localstack services endpoint inst
 
 .. code-block:: shell
 
-    awscli_saml_sso --endpoint-url=http://localhost:4566 --use-browser
+    awscli_saml_sso --endpoint-url=http://localhost:4566 --show-browser
     # OR
-    ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso --use-browser
+    ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso --show-browser
 
 You can now use the following url as your identity provider url when asked by awscli-saml-sso: http://localhost:8080/auth/realms/master/protocol/saml/clients/amazon-aws
 If needed, you will find more details about the local environment setup in the following sections.

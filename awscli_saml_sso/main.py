@@ -45,7 +45,6 @@ threading.excepthook = custom_hook
 @click.option("--endpoint-url", envvar="ASS_ENDPOINT_URL",
               help="Override AWS API endpoint url (mainly for testing purpose)")
 @click.option('--show-browser', is_flag=True, help="Do not use headless mode")
-@click.option('--use-browser', is_flag=True, help="Input username and password in browser")
 @click.option('--idp-nickname', help="Nickname of the identity provider URL")
 @click.option('--use-stored', is_flag=True, help="Use stored values for username and password without prompt")
 @click.option('--get-chrome-driver', is_flag=True, help="Install Google Chrome driver and exit")
@@ -55,7 +54,6 @@ threading.excepthook = custom_hook
 def main(log_level,
          endpoint_url,
          show_browser,
-         use_browser,
          idp_nickname,
          use_stored,
          get_chrome_driver,
@@ -69,13 +67,9 @@ def main(log_level,
         "log_level": log_level,
     })
 
-    if use_browser:
-        show_browser = True
-
     assertion, idp_nickname = login_and_get_assertion(show_browser=show_browser,
                                                       idp_nickname=idp_nickname,
-                                                      use_stored=use_stored,
-                                                      use_browser=use_browser)
+                                                      use_stored=use_stored)
 
     # Parse the returned assertion and extract the authorized roles
     awsroles = []

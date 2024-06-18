@@ -8,7 +8,7 @@ with open("README.rst") as readme_file:
 
 setup(
     name="awscli_saml_sso",
-    version="0.2.5",
+    version="0.2.6",
 
     author="Benjamin Brabant",
     author_email="benjamin.brabant@octo.com",
@@ -40,7 +40,10 @@ setup(
         "selenium-wire==5.1.0",
         "webdriver-manager==4.0.1",
         "keyring",
-	    "blinker<1.8.0"
+	    "blinker<1.8.0",
+        "pyopenssl==22.0.0",
+        "cryptography==38.0.4",
+        "h2==4.1.0"
     ],
     entry_points={
         "console_scripts": [

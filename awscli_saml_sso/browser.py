@@ -1,15 +1,16 @@
 import urllib.parse
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver import Chrome
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException
+from selenium.webdriver.remote.webelement import WebElement
 import tempfile
 from awscli_saml_sso.config_parser import CustomConfigParser
 from urllib.parse import urlparse
 from enum import Enum
 import importlib
+from time import sleep
 
 # awssamlhomepage: The AWS SAML start page that end the authentication process
 awssamlhomepage = "https://signin.aws.amazon.com/saml"
@@ -27,6 +28,12 @@ class SupportedBrowsers(Enum):
               "driver_class": "webdriver_manager.chrome.ChromeDriverManager",
               "options_class": "selenium.webdriver.chrome.options.Options",
               "service_class": "selenium.webdriver.chrome.service.Service",
+              "enabled": True}
+    FIREFOX = {"name": "Firefox",
+              "browser_class": "seleniumwire.webdriver.Firefox",
+              "driver_class": "webdriver_manager.firefox.GeckoDriverManager",
+              "options_class": "selenium.webdriver.FirefoxOptions",
+              "service_class": "selenium.webdriver.FirefoxService",
               "enabled": False}
     
 def import_class(class_path):
@@ -41,30 +48,28 @@ navigation_timeout = 90
 
 ignored_exceptions = (NoSuchElementException,StaleElementReferenceException,ElementNotInteractableException,)
 
-failure_message = 'please try it all again...\nYou can disable automatic input by appending --use-browser'
+failure_message = 'please try it all again...\nYou can check browser rendering by appending --show-browser'
 
-def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data_dir: str, profile: str):
+def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data_dir: str):
     browser = None
     _options_class = import_class(browser_kind.value["options_class"])
     options = _options_class()
 
     # arguments documentation
     # https://gist.github.com/ntamvl/4f93bbb7c9b4829c601104a2d2f91fe5
+    # https://github.com/GoogleChrome/chrome-launcher/blob/main/docs/chrome-flags-for-tools.md
+    # https://peter.sh/experiments/chromium-command-line-switches/
     if not show_browser:
-        options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-extensions")
+        options.add_argument("--headless=new")
     options.add_argument(f"--user-data-dir={user_data_dir}")
-    options.add_argument(f"--profile-directory={profile}")
-    options.add_argument("--disable-infobars")
+    options.add_argument(f"--password-store=basic")
     options.add_argument("--window-position=0,0")
     options.add_argument("--window-size=1024,768")
     options.add_argument("--disable-notifications")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
-    options.add_experimental_option('useAutomationExtension', False)
-    print(f"⚙️ Starting{'' if show_browser else ' headless'} browser")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    options.add_argument("--remote-debugging-pipe")
+    print(f"⚙️ Starting{'' if show_browser else ' headless'} {browser_kind.value['name']} browser")
     _service_class = import_class(browser_kind.value["service_class"])
     _driver_class = import_class(browser_kind.value["driver_class"])
     _browser_class = import_class(browser_kind.value["browser_class"])
@@ -75,7 +80,8 @@ def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data
         return browser
 
     
-def loop_input_password(browser: Chrome, idp_password: str, password_elem):
+def loop_input_password(browser, idp_password: str, password_elem):
+    sleep(0.2)
     try:
         if password_elem is None:
             # wait till page changes and displays the password element
@@ -94,7 +100,8 @@ def loop_input_password(browser: Chrome, idp_password: str, password_elem):
         loop_input_password(browser, idp_password, None)
 
 
-def handle_code(browser: Chrome, element):
+def handle_code(browser, element):
+    sleep(0.2)
     element.click()
     # prompt for the MFA code and enter it
     mfa_code = input("⌨️ Please enter MFA code: ")
@@ -110,10 +117,11 @@ def handle_code(browser: Chrome, element):
     print("✅ MFA code is correct, waiting for AWS SAML homepage...")
 
 
-def handle_password_and_or_mfa(browser: Chrome,
+def handle_password_and_or_mfa(browser,
                                config_parser: CustomConfigParser,
                                idp_nickname: str,
-                               use_stored: bool):
+                               idp_password: str):
+    sleep(0.2)
     # wait till page changes and shows passowrd invite or displays the MFA code element
     next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
         EC.any_of(EC.presence_of_element_located((By.NAME, "otc")),
@@ -131,10 +139,9 @@ def handle_password_and_or_mfa(browser: Chrome,
         print(f'⌨️ Enter this on you authentication app, then wait : {next_elem.text}')
 
     elif next_elem.get_attribute('type') == "password":
-        # get the password and enter it
-        idp_password = config_parser.get_password(idp_nickname, use_stored)
+        # enter the password
         loop_input_password(browser, idp_password, next_elem)
-        handle_password_and_or_mfa(browser, config_parser, idp_nickname, use_stored)
+        handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
     elif next_elem.get_attribute('id') == "passwordError":
         save_page(browser.page_source, "error_incorrect_passwd")
@@ -147,16 +154,22 @@ def handle_password_and_or_mfa(browser: Chrome,
     handle_after_mfa(browser)
 
 
-def handle_after_mfa(browser: Chrome):
+def handle_after_mfa(browser):
+    sleep(0.2)
     try:
         # in case improve connection shows up
-        next_elem = WebDriverWait(browser, navigation_timeout/10, ignored_exceptions=ignored_exceptions).until(
+        next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
             EC.any_of(EC.presence_of_element_located((By.LINK_TEXT, "Not now")),
                     EC.presence_of_element_located((By.LINK_TEXT, "Plus tard")),
                     EC.presence_of_element_located((By.XPATH, "//input[@value='Non']")),
                     EC.presence_of_element_located((By.XPATH, "//input[@value='No']")),
                     EC.presence_of_element_located((By.ID, "idDiv_SAASDS_Title")),
+                    EC.url_to_be(awssamlhomepage) # in case this page shows up, this function will return without action
                     ))
+
+        if not isinstance(next_elem, WebElement):
+            return
+
         if next_elem.get_attribute('id') == "idDiv_SAASDS_Title":
             save_page(browser.page_source, "error_request_denied")
             raise SystemExit("❌ Request was denied, could be unsuccessfull MFA, " + failure_message)
@@ -176,46 +189,36 @@ def save_page(page_source: str, prefix: str):
 
 def login_and_get_assertion(show_browser: bool=False,
                             idp_nickname: str=None,
-                            use_stored: bool=False,
-                            use_browser: bool=False):
+                            use_stored: bool=False):
     config_parser = CustomConfigParser()
     idp_nickname, idpentryurl = config_parser.get_idp_url(idp_nickname)
     enabled_supported_browsers = [sb for sb in SupportedBrowsers if sb.value["enabled"]]
-    browser_name, user_data_dir, profile = config_parser.get_browser_details(idp_nickname=idp_nickname,
-                                                                          supported_browsers=enabled_supported_browsers)
+    browser_name, user_data_dir = config_parser.get_browser_details(idp_nickname=idp_nickname,
+                                                                    supported_browsers=enabled_supported_browsers)
     browser_kind = [bk for bk in SupportedBrowsers if bk.value["name"] == browser_name][0]
+    idp_login = config_parser.get_login(idp_nickname, use_stored)
+    idp_password = config_parser.get_password(idp_nickname, use_stored)
+    
     browser = start_browser(show_browser=show_browser,
                             browser_kind=browser_kind,
-                            user_data_dir=user_data_dir,
-                            profile=profile) 
+                            user_data_dir=user_data_dir)
 
     try:
-        visit_url_host_first=False
-        url = idpentryurl
-        if visit_url_host_first:
-            # load the host of the IDP page
-            parsing = urlparse(idpentryurl)
-            url = f'{parsing.scheme}://{parsing.netloc}'
-            print(f'🌐 Visiting {url} first')
-        browser.get(url)
+        browser.get(idpentryurl)
         try:
-            if not use_browser:
-                idp_login = config_parser.get_login(idp_nickname, use_stored)
+            if True:
                 # wait for the screen showing already known logins or for the input box with the username element
                 login_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
                     EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
                               EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
                               ))
+                sleep(0.2)
                 login_elem.click()
                 # in case of input box, enter the login
                 if login_elem.get_attribute('name') == 'loginfmt':
                     login_elem.send_keys(idp_login + Keys.ENTER)
                 # handle pasword and/or MFA directly in case of passwordless
-                handle_password_and_or_mfa(browser, config_parser, idp_nickname, use_stored)
-
-            if visit_url_host_first:
-                # load the IDP page now that we are authenticated
-                browser.get(idpentryurl)
+                handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
             try:
                 # last step: wait till AWS SAML homepage displays and return assertion

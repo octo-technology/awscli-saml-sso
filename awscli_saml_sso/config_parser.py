@@ -3,6 +3,7 @@ import configparser
 import getpass
 from subprocess import Popen, PIPE, STDOUT
 import keyring
+from hashlib import md5
 
 class CustomConfigParser():
 
@@ -17,18 +18,16 @@ class CustomConfigParser():
         with open(self.credentials_file.as_posix(), "w") as fp:
             self.credentials.write(fp)
 
-    def store_browser_details(self, idp_nickname, browser_name, user_data_dir, profile):
+    def store_browser_details(self, idp_nickname, browser_name, user_data_dir):
         self.credentials[idp_nickname]["browser_name"] = browser_name
         self.credentials[idp_nickname]["user_data_dir"] = user_data_dir
-        self.credentials[idp_nickname]["profile"] = profile
         self.store()
 
     def get_browser_details(self, idp_nickname, supported_browsers):
         if idp_nickname in self.credentials and "browser_name" in self.credentials[idp_nickname]:
             browser_name = self.credentials[idp_nickname]["browser_name"]
             user_data_dir = self.credentials[idp_nickname]["user_data_dir"]
-            profile = self.credentials[idp_nickname]["profile"]
-            return browser_name, user_data_dir, profile
+            return browser_name, user_data_dir
         
         selected_browser_kind = None
         for browser_kind in supported_browsers:
@@ -40,18 +39,12 @@ class CustomConfigParser():
             print("⚠️ Please select your usual browser")
             return self.get_browser_details(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
 
-        try:
-            profile_path = Path(
-                input(
-                    f"Use the browser to visit the page {selected_browser_kind['name'].lower()}://version and paste here the path facing 'Profile Path:' : "
-                    ).strip())
-            user_data_dir = str(profile_path.parent)
-            profile = str(profile_path.name)
-        except:
-            print("Please try again")
-            return self.get_browser_details(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
-        self.store_browser_details(idp_nickname, selected_browser_kind["name"], user_data_dir, profile)
-        return selected_browser_kind["name"], user_data_dir, profile
+        user_data_dir = Path(Path.home(),
+                             ".awscli_saml_sso_profile",
+                             selected_browser_kind["name"],
+                             md5(idp_nickname.encode('utf8')).hexdigest()).as_posix()
+        self.store_browser_details(idp_nickname, selected_browser_kind["name"], user_data_dir)
+        return selected_browser_kind["name"], user_data_dir
 
     def new_idp_url(self):
         prompt = "⌨️ Give a nickame for this new identity provider: "
