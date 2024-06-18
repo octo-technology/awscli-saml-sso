@@ -8,7 +8,7 @@ with open("README.rst") as readme_file:
 
 setup(
     name="awscli_saml_sso",
-    version="0.2.4",
+    version="0.2.5",
 
     author="Benjamin Brabant",
     author_email="benjamin.brabant@octo.com",
@@ -36,9 +36,9 @@ setup(
     install_requires=[
         "boto3==1.16.26",
         "click==7.1.2",
-        "selenium==4.12.0",
+        "selenium==4.21.0",
         "selenium-wire==5.1.0",
-        "webdriver-manager==4.0.0",
+        "webdriver-manager==4.0.1",
         "keyring",
 	    "blinker<1.8.0"
     ],
