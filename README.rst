@@ -18,7 +18,7 @@ Requirements
 ------------
 
 * Python 3.8+
-* Google Chrome, Chromium or Firefox web browser installed on operating system
+* Google Chrome or Microsoft Edge web browser installed on operating system
 
 .. _installation:
 Installation
@@ -33,12 +33,6 @@ You need a fully functional python 3 environment, then you can install tool from
 .. _usage:
 Usage
 -----
-
-First ensure you have Google Chrome installed and get the latest suitable driver:
-
-.. code-block:: shell
-
-    awscli_saml_sso --get-chrome-driver
 
 You only need to run the following command in terminal:
 
@@ -71,6 +65,8 @@ You only need to run the following command in terminal:
 2. opens a headless web browser to fulfil SSO authentication through your identity provider, asking you to input username, password and MFA
 3. retrieve attached AWS roles and ask you to choose role you would like to assume
 4. provide a ``saml`` profile in ``/home/.aws/credentials`` filled with temporary credentials
+
+You can see what is happening in the web browser by appending ``--show-browser`` (headless mode is not used)
 
 After a successfull run with identiy provider nickname `MyTenant`, you can run this to avoid any prompt other than MFA
 
