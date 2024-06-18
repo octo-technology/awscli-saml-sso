@@ -32,6 +32,7 @@ class CustomConfigParser():
         
         selected_browser_kind = None
         for browser_kind in supported_browsers:
+            print("⚠️ From June 2024 on, this tool supports only Microsoft Edge browser")
             if input(f"Is {browser_kind.value} your usual browser for Accenture Single-Signe-On ? (y/n) ") == "y":
                 selected_browser_kind = browser_kind.value
                 break
@@ -40,7 +41,7 @@ class CustomConfigParser():
             return self.get_browser_kind(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
 
         try:
-            profile_path = Path(input(f"Use the browser to go to {selected_browser_kind}://version and paste here the path facing 'Profile Path:' : ").strip())
+            profile_path = Path(input(f"Use the browser to visit the page {selected_browser_kind}://version and paste here the path facing 'Profile Path:' : ").strip())
             user_data_dir = str(profile_path.parent)
             profile = str(profile_path.name)
         except:

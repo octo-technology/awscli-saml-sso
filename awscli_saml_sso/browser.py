@@ -23,7 +23,7 @@ awssamlhomepage = "https://signin.aws.amazon.com/saml"
 # supported_browsers: Browsers kind supported by selenium webdriver
 class SupportedBrowsers(Enum):
     EDGE = "Edge"
-    CHROME = "Chrome"
+#    CHROME = "Chrome"
 
 # navigation_timeout: The delay in seconds we wait page changes
 # must be high enough for awssamlhomepage
@@ -54,11 +54,9 @@ def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data
     options.add_argument("--disable-notifications")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    # options.binary_location = '/usr/bin/google-chrome'
     options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
     options.add_experimental_option('useAutomationExtension', False)
     print(f"⚙️ Starting{'' if show_browser else ' headless'} browser")
-    # print("\n⚠️ If you get a WARNING about chromedriver version please run: awscli_saml_sso --get-chrome-driver\n")
     if browser_kind == SupportedBrowsers.CHROME.value:
         browser = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
     if browser_kind == SupportedBrowsers.EDGE.value:
