@@ -23,7 +23,7 @@ awssamlhomepage = "https://signin.aws.amazon.com/saml"
 # supported_browsers: Browsers kind supported by selenium webdriver
 class SupportedBrowsers(Enum):
     EDGE = "Edge"
-#    CHROME = "Chrome"
+    CHROME = "Chrome"
 
 # navigation_timeout: The delay in seconds we wait page changes
 # must be high enough for awssamlhomepage
