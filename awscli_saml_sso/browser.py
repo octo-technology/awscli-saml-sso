@@ -1,9 +1,6 @@
 import urllib.parse
-from seleniumwire import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver import Chrome
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,19 +8,32 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 import tempfile
 from awscli_saml_sso.config_parser import CustomConfigParser
 from urllib.parse import urlparse
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.edge.service import Service as EdgeService
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from enum import Enum
+import importlib
 
 # awssamlhomepage: The AWS SAML start page that end the authentication process
 awssamlhomepage = "https://signin.aws.amazon.com/saml"
 
 # supported_browsers: Browsers kind supported by selenium webdriver
 class SupportedBrowsers(Enum):
-    EDGE = "Edge"
-    CHROME = "Chrome"
+    EDGE = {"name": "Edge",
+            "browser_class": "seleniumwire.webdriver.Edge",
+            "driver_class": "webdriver_manager.microsoft.EdgeChromiumDriverManager",
+            "options_class": "selenium.webdriver.edge.options.Options",
+            "service_class": "selenium.webdriver.edge.service.Service",
+            "enabled": True}
+    CHROME = {"name": "Chrome",
+              "browser_class": "seleniumwire.webdriver.Chrome",
+              "driver_class": "webdriver_manager.chrome.ChromeDriverManager",
+              "options_class": "selenium.webdriver.chrome.options.Options",
+              "service_class": "selenium.webdriver.chrome.service.Service",
+              "enabled": False}
+    
+def import_class(class_path):
+    _module = importlib.import_module(".".join(class_path.split(".")[:-1]))
+    _class = getattr(_module, class_path.split(".")[-1])
+    return _class
+
 
 # navigation_timeout: The delay in seconds we wait page changes
 # must be high enough for awssamlhomepage
@@ -35,11 +45,9 @@ failure_message = 'please try it all again...\nYou can disable automatic input b
 
 def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data_dir: str, profile: str):
     browser = None
-    options = None
-    if browser_kind == SupportedBrowsers.CHROME.value:
-        options = ChromeOptions()
-    if browser_kind == SupportedBrowsers.EDGE.value:
-        options = EdgeOptions()
+    _options_class = import_class(browser_kind.value["options_class"])
+    options = _options_class()
+
     # arguments documentation
     # https://gist.github.com/ntamvl/4f93bbb7c9b4829c601104a2d2f91fe5
     if not show_browser:
@@ -57,10 +65,10 @@ def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data
     options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
     options.add_experimental_option('useAutomationExtension', False)
     print(f"⚙️ Starting{'' if show_browser else ' headless'} browser")
-    if browser_kind == SupportedBrowsers.CHROME.value:
-        browser = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-    if browser_kind == SupportedBrowsers.EDGE.value:
-        browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()), options=options)
+    _service_class = import_class(browser_kind.value["service_class"])
+    _driver_class = import_class(browser_kind.value["driver_class"])
+    _browser_class = import_class(browser_kind.value["browser_class"])
+    browser = _browser_class(service=_service_class(_driver_class().install()), options=options)
     if not browser:
         raise SystemExit(f"🛑 Unable to find browser {browser.value}, please install it first")
     else:
@@ -172,8 +180,10 @@ def login_and_get_assertion(show_browser: bool=False,
                             use_browser: bool=False):
     config_parser = CustomConfigParser()
     idp_nickname, idpentryurl = config_parser.get_idp_url(idp_nickname)
-    browser_kind, user_data_dir, profile = config_parser.get_browser_kind(idp_nickname=idp_nickname,
-                                                                          supported_browsers=SupportedBrowsers)
+    enabled_supported_browsers = [sb for sb in SupportedBrowsers if sb.value["enabled"]]
+    browser_name, user_data_dir, profile = config_parser.get_browser_details(idp_nickname=idp_nickname,
+                                                                          supported_browsers=enabled_supported_browsers)
+    browser_kind = [bk for bk in SupportedBrowsers if bk.value["name"] == browser_name][0]
     browser = start_browser(show_browser=show_browser,
                             browser_kind=browser_kind,
                             user_data_dir=user_data_dir,
