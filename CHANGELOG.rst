@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.2.5 (2024-06-17)
+------------------
+
+* Introduce Microsoft Edge browser as an option
+* Ask for and use Chrome or Edge profile path
+* Use driver from `webdriver_manager` library instead of installing it on OS
+
 0.2.4 (2023-10-25)
 ------------------
 

@@ -17,6 +17,39 @@ class CustomConfigParser():
         with open(self.credentials_file.as_posix(), "w") as fp:
             self.credentials.write(fp)
 
+    def store_browser_kind(self, idp_nickname, browser_kind, user_data_dir, profile):
+        self.credentials[idp_nickname]["browser_kind"] = browser_kind
+        self.credentials[idp_nickname]["user_data_dir"] = user_data_dir
+        self.credentials[idp_nickname]["profile"] = profile
+        self.store()
+
+    def get_browser_kind(self, idp_nickname, supported_browsers):
+        if idp_nickname in self.credentials and "browser_kind" in self.credentials[idp_nickname]:
+            selected_browser_kind = self.credentials[idp_nickname]["browser_kind"]
+            user_data_dir = self.credentials[idp_nickname]["user_data_dir"]
+            profile = self.credentials[idp_nickname]["profile"]
+            return selected_browser_kind, user_data_dir, profile
+        
+        selected_browser_kind = None
+        for browser_kind in supported_browsers:
+            print("⚠️ From June 2024 on, this tool supports only Microsoft Edge browser")
+            if input(f"Is {browser_kind.value} your usual browser for Accenture Single-Signe-On ? (y/n) ") == "y":
+                selected_browser_kind = browser_kind.value
+                break
+        if selected_browser_kind == None:
+            print("⚠️ Please select your usual browser")
+            return self.get_browser_kind(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
+
+        try:
+            profile_path = Path(input(f"Use the browser to visit the page {selected_browser_kind}://version and paste here the path facing 'Profile Path:' : ").strip())
+            user_data_dir = str(profile_path.parent)
+            profile = str(profile_path.name)
+        except:
+            print("Please try again")
+            return self.get_browser_kind(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
+        self.store_browser_kind(idp_nickname, selected_browser_kind, user_data_dir, profile)
+        return selected_browser_kind, user_data_dir, profile
+
     def new_idp_url(self):
         prompt = "⌨️ Give a nickame for this new identity provider: "
         idp_nickname = input(prompt)
@@ -53,14 +86,14 @@ class CustomConfigParser():
                 choice_text = f'choose between 0 and {len(sections)-1}'
             idp_index = input(f"⌨️ Please {choice_text} or press + to add a new IDP [0]:")
             try:
-                if int(idp_index) < 0 or int(idp_index) >= len(sections):
+                if idp_index == '+':
+                    return self.new_idp_url()
+                if idp_index == '':
+                    idp_index = 0
+                elif int(idp_index) < 0 or int(idp_index) >= len(sections):
                     return self.get_idp_url()
             except:
                 return self.get_idp_url()
-            if idp_index == '':
-                idp_index = 0
-            if idp_index == '+':
-                return self.new_idp_url()
             idp_nickname = sections[int(idp_index)]
             stored_idp_url = self.credentials[idp_nickname]["idp_url"]
             input_idp_url = input(f"⌨️ Identity provider URL [{stored_idp_url}]: ")

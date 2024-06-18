@@ -3,6 +3,7 @@ from seleniumwire import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver import Chrome
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -10,9 +11,19 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 import tempfile
 from awscli_saml_sso.config_parser import CustomConfigParser
 from urllib.parse import urlparse
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.edge.service import Service as EdgeService
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from enum import Enum
 
 # awssamlhomepage: The AWS SAML start page that end the authentication process
 awssamlhomepage = "https://signin.aws.amazon.com/saml"
+
+# supported_browsers: Browsers kind supported by selenium webdriver
+class SupportedBrowsers(Enum):
+    EDGE = "Edge"
+#    CHROME = "Chrome"
 
 # navigation_timeout: The delay in seconds we wait page changes
 # must be high enough for awssamlhomepage
@@ -22,27 +33,36 @@ ignored_exceptions = (NoSuchElementException,StaleElementReferenceException,Elem
 
 failure_message = 'please try it all again...\nYou can disable automatic input by appending --use-browser'
 
-def start_chrome_browser(show_browser: bool):
+def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data_dir: str, profile: str):
     browser = None
-    options = ChromeOptions()
+    options = None
+    if browser_kind == SupportedBrowsers.CHROME.value:
+        options = ChromeOptions()
+    if browser_kind == SupportedBrowsers.EDGE.value:
+        options = EdgeOptions()
     # arguments documentation
     # https://gist.github.com/ntamvl/4f93bbb7c9b4829c601104a2d2f91fe5
     if not show_browser:
         options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-extensions")
+    options.add_argument(f"--user-data-dir={user_data_dir}")
+    options.add_argument(f"--profile-directory={profile}")
     options.add_argument("--disable-infobars")
     options.add_argument("--window-position=0,0")
     options.add_argument("--window-size=1024,768")
     options.add_argument("--disable-notifications")
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     options.add_experimental_option("excludeSwitches", ["enable-automation"]) 
+    options.add_experimental_option('useAutomationExtension', False)
     print(f"⚙️ Starting{'' if show_browser else ' headless'} browser")
-    print("\n⚠️ If you get a WARNING about chromedriver version please run: awscli_saml_sso --get-chrome-driver\n")
-    browser = webdriver.Chrome(options=options)
+    if browser_kind == SupportedBrowsers.CHROME.value:
+        browser = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+    if browser_kind == SupportedBrowsers.EDGE.value:
+        browser = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()), options=options)
     if not browser:
-        raise SystemExit(f"🛑 Unable to find Google Chrome, please install it then run: awscli_saml_sso --get-chrome-driver")
+        raise SystemExit(f"🛑 Unable to find browser {browser.value}, please install it first")
     else:
         return browser
 
@@ -152,7 +172,12 @@ def login_and_get_assertion(show_browser: bool=False,
                             use_browser: bool=False):
     config_parser = CustomConfigParser()
     idp_nickname, idpentryurl = config_parser.get_idp_url(idp_nickname)
-    browser = start_chrome_browser(show_browser=show_browser) 
+    browser_kind, user_data_dir, profile = config_parser.get_browser_kind(idp_nickname=idp_nickname,
+                                                                          supported_browsers=SupportedBrowsers)
+    browser = start_browser(show_browser=show_browser,
+                            browser_kind=browser_kind,
+                            user_data_dir=user_data_dir,
+                            profile=profile) 
 
     try:
         visit_url_host_first=False
@@ -165,13 +190,16 @@ def login_and_get_assertion(show_browser: bool=False,
         browser.get(url)
         try:
             if not use_browser:
-                # wait the username element
-                login_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
-                    EC.presence_of_element_located((By.NAME, "loginfmt")))
-                login_elem.click()
-                # get the login and enter it
                 idp_login = config_parser.get_login(idp_nickname, use_stored)
-                login_elem.send_keys(idp_login + Keys.ENTER)
+                # wait for the screen showing already known logins or for the input box with the username element
+                login_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+                    EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
+                              EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
+                              ))
+                login_elem.click()
+                # in case of input box, enter the login
+                if login_elem.get_attribute('name') == 'loginfmt':
+                    login_elem.send_keys(idp_login + Keys.ENTER)
                 # handle pasword and/or MFA directly in case of passwordless
                 handle_password_and_or_mfa(browser, config_parser, idp_nickname, use_stored)
 
