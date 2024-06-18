@@ -9,6 +9,9 @@ import boto3
 import click
 from logging.config import fileConfig
 from pkg_resources import resource_filename
+from h2.exceptions import StreamClosedError
+import threading
+import traceback
 
 from awscli_saml_sso.driver import get_google_chrome_driver
 from awscli_saml_sso.browser import login_and_get_assertion
@@ -21,6 +24,15 @@ supported_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 # default_log_level: Default python log level to configure when not user provided
 default_log_level = "WARNING"
+
+
+def custom_hook(args):
+    # ignore Exception in thread Http2SingleStreamLayer of type h2.exceptions.StreamClosedError
+    if not isinstance(args.exc_value, StreamClosedError):
+        print(f"Exception {args.exc_type} in thread {args.thread}:")
+        traceback.print_tb(args.exc_traceback, file=sys.stdout)
+
+threading.excepthook = custom_hook
 
 ##########################################################################
 
