@@ -17,7 +17,7 @@ awscli_saml_sso is a command line tool that aims to get temporary credentials fr
 Requirements
 ------------
 
-* Python 3.8+
+* Python 3.8 to 3.11
 * Google Chrome or Microsoft Edge web browser installed on operating system
 
 .. _installation:
