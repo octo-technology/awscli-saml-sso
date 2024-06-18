@@ -31,12 +31,12 @@ class CustomConfigParser():
         
         selected_browser_kind = None
         for browser_kind in supported_browsers:
-            print("⚠️ From June 2024 on, this tool supports only Microsoft Edge browser")
-            if input(f"Is {browser_kind.value['name']} your usual browser for Accenture Single-Signe-On ? (y/n) ") == "y":
+            print("⚠️ Please use a browser that is already installed on your system")
+            if input(f"Do you want to use {browser_kind.value['name']} browser ? (y/n) ") == "y":
                 selected_browser_kind = browser_kind.value
                 break
         if selected_browser_kind == None:
-            print("⚠️ Please select your usual browser")
+            print("⚠️ You need to choose a browser")
             return self.get_browser_details(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
 
         user_data_dir = Path(Path.home(),
