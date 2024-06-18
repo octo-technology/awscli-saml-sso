@@ -26,6 +26,7 @@ supported_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 default_log_level = "WARNING"
 
 
+# https://superfastpython.com/thread-exception-handling/
 def custom_hook(args):
     # ignore Exception in thread Http2SingleStreamLayer of type h2.exceptions.StreamClosedError
     if not isinstance(args.exc_value, StreamClosedError):

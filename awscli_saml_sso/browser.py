@@ -42,6 +42,9 @@ def import_class(class_path):
     return _class
 
 
+def mysleep():
+    sleep(0.2)
+
 # navigation_timeout: The delay in seconds we wait page changes
 # must be high enough for awssamlhomepage
 navigation_timeout = 90
@@ -81,7 +84,7 @@ def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data
 
     
 def loop_input_password(browser, idp_password: str, password_elem):
-    sleep(0.2)
+    mysleep()
     try:
         if password_elem is None:
             # wait till page changes and displays the password element
@@ -101,7 +104,7 @@ def loop_input_password(browser, idp_password: str, password_elem):
 
 
 def handle_code(browser, element):
-    sleep(0.2)
+    mysleep()
     element.click()
     # prompt for the MFA code and enter it
     mfa_code = input("⌨️ Please enter MFA code: ")
@@ -121,7 +124,7 @@ def handle_password_and_or_mfa(browser,
                                config_parser: CustomConfigParser,
                                idp_nickname: str,
                                idp_password: str):
-    sleep(0.2)
+    mysleep()
     # wait till page changes and shows passowrd invite or displays the MFA code element
     next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
         EC.any_of(EC.presence_of_element_located((By.NAME, "otc")),
@@ -151,24 +154,25 @@ def handle_password_and_or_mfa(browser,
         save_page(browser.page_source, "error_unknown_email")
         raise SystemExit("❌ Your email is not known for the identity provider, " + failure_message)
     
-    handle_after_mfa(browser)
+    try:
+        # in case any AWS page shows up, no need to perform after mfa handling
+        WebDriverWait(browser, navigation_timeout/15, ignored_exceptions=ignored_exceptions).until(
+            EC.url_contains("aws.amazon.com"))
+    except TimeoutException:
+        handle_after_mfa(browser)
 
 
 def handle_after_mfa(browser):
-    sleep(0.2)
+    mysleep()
     try:
         # in case improve connection shows up
-        next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+        next_elem = WebDriverWait(browser, navigation_timeout/15, ignored_exceptions=ignored_exceptions).until(
             EC.any_of(EC.presence_of_element_located((By.LINK_TEXT, "Not now")),
                     EC.presence_of_element_located((By.LINK_TEXT, "Plus tard")),
                     EC.presence_of_element_located((By.XPATH, "//input[@value='Non']")),
                     EC.presence_of_element_located((By.XPATH, "//input[@value='No']")),
                     EC.presence_of_element_located((By.ID, "idDiv_SAASDS_Title")),
-                    EC.url_to_be(awssamlhomepage) # in case this page shows up, this function will return without action
                     ))
-
-        if not isinstance(next_elem, WebElement):
-            return
 
         if next_elem.get_attribute('id') == "idDiv_SAASDS_Title":
             save_page(browser.page_source, "error_request_denied")
@@ -192,13 +196,16 @@ def login_and_get_assertion(show_browser: bool=False,
                             use_stored: bool=False):
     config_parser = CustomConfigParser()
     idp_nickname, idpentryurl = config_parser.get_idp_url(idp_nickname)
+    mysleep()
     enabled_supported_browsers = [sb for sb in SupportedBrowsers if sb.value["enabled"]]
     browser_name, user_data_dir = config_parser.get_browser_details(idp_nickname=idp_nickname,
                                                                     supported_browsers=enabled_supported_browsers)
     browser_kind = [bk for bk in SupportedBrowsers if bk.value["name"] == browser_name][0]
+    mysleep()
     idp_login = config_parser.get_login(idp_nickname, use_stored)
+    mysleep()
     idp_password = config_parser.get_password(idp_nickname, use_stored)
-    
+    mysleep()
     browser = start_browser(show_browser=show_browser,
                             browser_kind=browser_kind,
                             user_data_dir=user_data_dir)
@@ -212,7 +219,7 @@ def login_and_get_assertion(show_browser: bool=False,
                     EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
                               EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
                               ))
-                sleep(0.2)
+                mysleep()
                 login_elem.click()
                 # in case of input box, enter the login
                 if login_elem.get_attribute('name') == 'loginfmt':
