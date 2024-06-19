@@ -11,6 +11,8 @@ from urllib.parse import urlparse
 from enum import Enum
 import importlib
 from time import sleep
+from awscli_saml_sso import __path__ as module_path
+from pathlib import Path
 
 # awssamlhomepage: The AWS SAML start page that end the authentication process
 awssamlhomepage = "https://signin.aws.amazon.com/saml"
@@ -28,7 +30,7 @@ class SupportedBrowsers(Enum):
               "driver_class": "webdriver_manager.chrome.ChromeDriverManager",
               "options_class": "selenium.webdriver.chrome.options.Options",
               "service_class": "selenium.webdriver.chrome.service.Service",
-              "enabled": True}
+              "enabled": False}
     FIREFOX = {"name": "Firefox",
               "browser_class": "seleniumwire.webdriver.Firefox",
               "driver_class": "webdriver_manager.firefox.GeckoDriverManager",
@@ -67,7 +69,7 @@ def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data
     options.add_argument(f"--user-data-dir={user_data_dir}")
     options.add_argument(f"--password-store=basic")
     options.add_argument("--window-position=0,0")
-    options.add_argument("--window-size=1024,768")
+    options.add_argument("--window-size=768,768")
     options.add_argument("--disable-notifications")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
@@ -198,27 +200,39 @@ def login_and_get_assertion(show_browser: bool=False,
     idp_nickname, idpentryurl = config_parser.get_idp_url(idp_nickname)
     mysleep()
     enabled_supported_browsers = [sb for sb in SupportedBrowsers if sb.value["enabled"]]
-    browser_name, user_data_dir = config_parser.get_browser_details(idp_nickname=idp_nickname,
-                                                                    supported_browsers=enabled_supported_browsers)
+    browser_name, user_data_dir, first_time = config_parser.get_browser_details(
+        idp_nickname=idp_nickname,
+        supported_browsers=enabled_supported_browsers)
     browser_kind = [bk for bk in SupportedBrowsers if bk.value["name"] == browser_name][0]
     mysleep()
     idp_login = config_parser.get_login(idp_nickname, use_stored)
     mysleep()
     idp_password = config_parser.get_password(idp_nickname, use_stored)
     mysleep()
-    browser = start_browser(show_browser=show_browser,
+    browser = start_browser(show_browser=True if first_time else show_browser,
                             browser_kind=browser_kind,
                             user_data_dir=user_data_dir)
+    if first_time:
+        browser.get(f"file://{Path(module_path[0]) / 'first_time.html'}")
+        radio_button = browser.find_element(By.ID, "radio")
+        WebDriverWait(browser, navigation_timeout).until(EC.element_to_be_selected(radio_button))
+        mysleep()
 
     try:
         browser.get(idpentryurl)
+        mysleep()
         try:
-            if True:
-                # wait for the screen showing already known logins or for the input box with the username element
-                login_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
-                    EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
-                              EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
-                              ))
+            # wait until
+            # screen shows already known logins OR
+            # screen shows the input box with the username element OR
+            # screen goes directly to AWS page because every thing is already setup
+            login_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+                EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
+                        EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
+                        EC.url_contains("aws.amazon.com")
+                        ))
+            if isinstance(login_elem, WebElement):
+                # in case of login screen
                 mysleep()
                 login_elem.click()
                 # in case of input box, enter the login
@@ -228,7 +242,7 @@ def login_and_get_assertion(show_browser: bool=False,
                 handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
             try:
-                # last step: wait till AWS SAML homepage displays and return assertion
+                # last step: wait until AWS SAML homepage displays and return assertion
                 request = browser.wait_for_request(awssamlhomepage, timeout=navigation_timeout)
                 assertion = urllib.parse.unquote(str(request.body).split("=")[1])
                 return assertion, idp_nickname

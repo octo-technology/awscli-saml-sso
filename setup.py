@@ -8,11 +8,11 @@ with open("README.rst") as readme_file:
 
 setup(
     name="awscli_saml_sso",
-    version="0.2.6",
+    version="0.2.7",
 
     author="Benjamin Brabant",
     author_email="benjamin.brabant@octo.com",
-    python_requires=">=3.5",
+    python_requires=">=3.8,<3.12",
     license="GNU General Public License v3",
     url="https://github.com/octo-technology/awscli-saml-sso",
 

@@ -13,7 +13,6 @@ from h2.exceptions import StreamClosedError
 import threading
 import traceback
 
-from awscli_saml_sso.driver import get_google_chrome_driver
 from awscli_saml_sso.browser import login_and_get_assertion
 
 ##########################################################################
@@ -48,7 +47,6 @@ threading.excepthook = custom_hook
 @click.option('--show-browser', is_flag=True, help="Do not use headless mode")
 @click.option('--idp-nickname', help="Nickname of the identity provider URL")
 @click.option('--use-stored', is_flag=True, help="Use stored values for username and password without prompt")
-@click.option('--get-chrome-driver', is_flag=True, help="Install Google Chrome driver and exit")
 @click.option('--role-selection', type=int, default=-1, help="Index of the role to select among available roles")
 @click.version_option()
 
@@ -57,11 +55,7 @@ def main(log_level,
          show_browser,
          idp_nickname,
          use_stored,
-         get_chrome_driver,
          role_selection):
-    if get_chrome_driver:
-        get_google_chrome_driver()
-        return
 
     os.environ["WDM_LOG_LEVEL"] = str(logging.getLevelName(log_level))
     fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={

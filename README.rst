@@ -18,7 +18,7 @@ Requirements
 ------------
 
 * Python 3.8 to 3.11
-* Google Chrome or Microsoft Edge web browser installed on operating system
+* Microsoft Edge web browser installed on operating system
 
 .. _installation:
 Installation

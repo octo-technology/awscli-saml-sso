@@ -27,7 +27,8 @@ class CustomConfigParser():
         if idp_nickname in self.credentials and "browser_name" in self.credentials[idp_nickname]:
             browser_name = self.credentials[idp_nickname]["browser_name"]
             user_data_dir = self.credentials[idp_nickname]["user_data_dir"]
-            return browser_name, user_data_dir
+            first_time = False if Path(user_data_dir).exists() else True
+            return browser_name, user_data_dir, first_time
         
         selected_browser_kind = None
         for browser_kind in supported_browsers:
@@ -44,7 +45,8 @@ class CustomConfigParser():
                              selected_browser_kind["name"],
                              md5(idp_nickname.encode('utf8')).hexdigest()).as_posix()
         self.store_browser_details(idp_nickname, selected_browser_kind["name"], user_data_dir)
-        return selected_browser_kind["name"], user_data_dir
+        first_time = True
+        return selected_browser_kind["name"], user_data_dir, first_time
 
     def new_idp_url(self):
         prompt = "⌨️ Give a nickame for this new identity provider: "
@@ -135,9 +137,9 @@ class CustomConfigParser():
               print(f'⚙️ Entering stored password {"*" * len(stored_password)}')
               return stored_password
         if stored_password is None:
-            stored_password = ''
+            stored_password = ""
         displayed_password = "*" * len(stored_password)
-        input_password = getpass.getpass(f"⌨️ Password [{displayed_password}]: ")
+        input_password = getpass.getpass(f"⌨️ Password (type anything if you are passwordless) [{displayed_password}]: ")
         if input_password == "":
             if stored_password == "":
                 return self.get_password(idp_nickname, use_stored=False)

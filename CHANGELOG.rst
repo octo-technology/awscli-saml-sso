@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.2.7 (2024-06-19)
+------------------
+
+* Restrict usage to Microsoft Edge browser
+* Detect first use, open help page with animated gif, and adapt behavior accordingly
+
 0.2.6 (2024-06-18)
 ------------------
 
