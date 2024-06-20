@@ -3,7 +3,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException, ElementClickInterceptedException
 from selenium.webdriver.remote.webelement import WebElement
 import tempfile
 from awscli_saml_sso.config_parser import CustomConfigParser
@@ -224,20 +224,25 @@ def login_and_get_assertion(show_browser: bool=False,
         try:
             # wait until
             # screen shows already known logins OR
-            # screen shows the input box with the username element OR
+            # screen shows the input box with the login element OR
             # screen goes directly to AWS page because every thing is already setup
-            login_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+            next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
                 EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
                         EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
                         EC.url_contains("aws.amazon.com")
                         ))
-            if isinstance(login_elem, WebElement):
-                # in case of login screen
+            if isinstance(next_elem, WebElement):
+                # in case screen does not go directlty to AWS page
                 mysleep()
-                login_elem.click()
-                # in case of input box, enter the login
-                if login_elem.get_attribute('name') == 'loginfmt':
-                    login_elem.send_keys(idp_login + Keys.ENTER)
+                try:
+                    # in case of login screen
+                    next_elem.click()
+                    # in case of input box, enter the login
+                    if next_elem.get_attribute('name') == 'loginfmt':
+                        next_elem.send_keys(idp_login + Keys.ENTER)
+                except ElementClickInterceptedException:
+                    # this happens when login screen is skipped and password or mfa screen is shown
+                    pass
                 # handle pasword and/or MFA directly in case of passwordless
                 handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
