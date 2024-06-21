@@ -3,7 +3,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementNotInteractableException, ElementClickInterceptedException, NoSuchWindowException
 from selenium.webdriver.remote.webelement import WebElement
 import tempfile
 from awscli_saml_sso.config_parser import CustomConfigParser
@@ -214,15 +214,16 @@ def login_and_get_assertion(show_browser: bool=False,
     browser = start_browser(show_browser=True if first_time or use_browser else show_browser,
                             browser_kind=browser_kind,
                             user_data_dir=user_data_dir)
-    if first_time:
-        browser.get(f"file://{Path(module_path[0]) / 'first_time.html'}")
-        radio_button = browser.find_element(By.ID, "radio")
-        WebDriverWait(browser, navigation_timeout).until(EC.element_to_be_selected(radio_button))
-        mysleep()
-
     try:
+        if first_time:
+            browser.get(f"file://{Path(module_path[0]) / 'first_time.html'}")
+            radio_button = browser.find_element(By.ID, "radio")
+            WebDriverWait(browser, navigation_timeout).until(EC.element_to_be_selected(radio_button))
+            mysleep()
+        
         browser.get(idpentryurl)
         mysleep()
+
         try:
             if not use_browser:
                 # wait until
@@ -250,6 +251,8 @@ def login_and_get_assertion(show_browser: bool=False,
                     handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
             try:
+                WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+                    EC.url_contains("aws.amazon.com"))
                 # last step: wait until AWS SAML homepage displays and return assertion
                 request = browser.wait_for_request(awssamlhomepage, timeout=navigation_timeout)
                 assertion = urllib.parse.unquote(str(request.body).split("=")[1])
@@ -257,10 +260,13 @@ def login_and_get_assertion(show_browser: bool=False,
             except TimeoutException:
                 save_page(browser.page_source, "error_timeout")
                 raise SystemExit(f"❌ Could not complete authentication within {navigation_timeout} seconds, " + failure_message)
-            
+        
         except TimeoutException:
             save_page(browser.page_source, "error_login_elem")
             raise SystemExit(f"❌ Could not get login element from {idpentryurl}, check the URL and " + failure_message)
+
+    except NoSuchWindowException:
+        raise SystemExit(f"🤷 Seems somebody closed the browser")
 
     except Exception as e:
         save_page(browser.page_source, "error_unknown")

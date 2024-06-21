@@ -4,15 +4,38 @@ import getpass
 from subprocess import Popen, PIPE, STDOUT
 import keyring
 from hashlib import md5
+from urllib.parse import urlparse
+
+idp_url_prompt = "⌨️ Please enter your identity provider url of the form https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices"
+idp_nickname_prompt = "⌨️ Give a nickame for this new identity provider: "
+
+def is_valid_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except AttributeError:
+        return False
+    
+
+CONFIG_FOLDER = Path(Path.home(), ".awscli_saml_sso")
+DEPRECATED_CREDENTIALS_FILE = Path(Path.home(), ".awscli_saml_sso_credentials")
 
 class CustomConfigParser():
 
     def __init__(self):
-        self.credentials_file = Path(Path.home(), ".awscli_saml_sso_credentials")
+        CONFIG_FOLDER.mkdir(exist_ok=True)
+        self.credentials_file = CONFIG_FOLDER / "credentials"
+        if DEPRECATED_CREDENTIALS_FILE.exists():
+            DEPRECATED_CREDENTIALS_FILE.rename(self.credentials_file.as_posix())
         self.credentials_file.touch(mode=0o600, exist_ok=True)
         with open(self.credentials_file.as_posix(), "r") as fp:
             self.credentials = configparser.ConfigParser()
             self.credentials.read_file(fp)
+
+    @classmethod
+    def clean(self):
+        if CONFIG_FOLDER.exists():
+            CONFIG_FOLDER.rename(CONFIG_FOLDER.as_posix() + ".OLD")
 
     def store(self):
         with open(self.credentials_file.as_posix(), "w") as fp:
@@ -40,20 +63,19 @@ class CustomConfigParser():
             print("⚠️ You need to choose a browser")
             return self.get_browser_details(idp_nickname=idp_nickname, supported_browsers=supported_browsers)
 
-        user_data_dir = Path(Path.home(),
-                             ".awscli_saml_sso_profile",
-                             selected_browser_kind["name"],
-                             md5(idp_nickname.encode('utf8')).hexdigest()).as_posix()
-        self.store_browser_details(idp_nickname, selected_browser_kind["name"], user_data_dir)
+        user_data_dir = CONFIG_FOLDER / "profile" / selected_browser_kind["name"] / md5(idp_nickname.encode('utf8')).hexdigest()
+        user_data_dir.mkdir(parents=True, exist_ok=True)
+        self.store_browser_details(idp_nickname, selected_browser_kind["name"], user_data_dir.as_posix())
         first_time = True
         return selected_browser_kind["name"], user_data_dir, first_time
 
-    def new_idp_url(self):
-        prompt = "⌨️ Give a nickame for this new identity provider: "
-        idp_nickname = input(prompt)
-        idp_url = input("⌨️ Identity provider URL: ")
-        self.store_idp_url(idp_nickname=idp_nickname, idp_url=idp_url)
-        return idp_nickname, idp_url
+    def new_idp_url(self, new_idp_nickname):
+        idp_url = input(f"{idp_url_prompt} :")
+        if not is_valid_url(idp_url):
+            print("🔴 Your input does not look like a valid URL")
+            return self.new_idp_url(new_idp_nickname)
+        self.store_idp_url(idp_nickname=new_idp_nickname, idp_url=idp_url)
+        return new_idp_nickname, idp_url
     
     def get_idp_url_for_idp_nickname(self, idp_nickname):
         sections = self.credentials.sections()
@@ -67,11 +89,11 @@ class CustomConfigParser():
     def get_idp_url(self, idp_nickname=None):
         if idp_nickname is not None:
             return self.get_idp_url_for_idp_nickname(idp_nickname)
-        prompt = "⌨️ Please enter your identity provider url of the form https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices"
         sections = self.credentials.sections()
         if len(sections) == 0:
-            print(prompt)
-            return self.new_idp_url()
+            print("❗You don't have any stored identity provider, configure one now")
+            new_idp_nickname = input(idp_nickname_prompt)
+            return self.new_idp_url(new_idp_nickname)
         else:
             print("⤵️ You have stored these identity providers")
             print()
@@ -85,7 +107,8 @@ class CustomConfigParser():
             idp_index = input(f"⌨️ Please {choice_text} or press + to add a new IDP [0]:")
             try:
                 if idp_index == '+':
-                    return self.new_idp_url()
+                    new_idp_nickname = input(idp_nickname_prompt)
+                    return self.new_idp_url(new_idp_nickname)
                 if idp_index == '':
                     idp_index = 0
                 elif int(idp_index) < 0 or int(idp_index) >= len(sections):
@@ -94,7 +117,7 @@ class CustomConfigParser():
                 return self.get_idp_url()
             idp_nickname = sections[int(idp_index)]
             stored_idp_url = self.credentials[idp_nickname]["idp_url"]
-            input_idp_url = input(f"⌨️ Identity provider URL [{stored_idp_url}]: ")
+            input_idp_url = input(f"⌨{idp_url_prompt} [{stored_idp_url}]: ")
             if input_idp_url == "":
                 return idp_nickname, self.credentials[idp_nickname]["idp_url"]
             else:

@@ -14,6 +14,7 @@ import threading
 import traceback
 
 from awscli_saml_sso.browser import login_and_get_assertion
+from awscli_saml_sso.config_parser import CustomConfigParser
 
 ##########################################################################
 # Variables
@@ -49,6 +50,7 @@ threading.excepthook = custom_hook
 @click.option('--idp-nickname', help="Nickname of the identity provider URL")
 @click.option('--use-stored', is_flag=True, help="Use stored values for username and password without prompt")
 @click.option('--role-selection', type=int, default=-1, help="Index of the role to select among available roles")
+@click.option('--clean', is_flag=True, help="Wipe out all stored information")
 @click.version_option()
 
 def main(log_level,
@@ -57,7 +59,15 @@ def main(log_level,
          use_browser,
          idp_nickname,
          use_stored,
-         role_selection):
+         role_selection,
+         clean):
+    
+    if clean:
+        print("⚠️ Folder ~/.awscli_saml_sso will be renamed to ~/.awscli_saml_sso.OLD")
+        if input("❓ Proceed (y/n) ?")=="y":
+            CustomConfigParser.clean()
+            sys.exit(0)
+
 
     os.environ["WDM_LOG_LEVEL"] = str(logging.getLevelName(log_level))
     fileConfig(resource_filename("awscli_saml_sso", "logger.cfg"), disable_existing_loggers=False, defaults={
