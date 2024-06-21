@@ -194,6 +194,7 @@ def save_page(page_source: str, prefix: str):
 
 
 def login_and_get_assertion(show_browser: bool=False,
+                            use_browser: bool=False,
                             idp_nickname: str=None,
                             use_stored: bool=False):
     config_parser = CustomConfigParser()
@@ -205,11 +206,12 @@ def login_and_get_assertion(show_browser: bool=False,
         supported_browsers=enabled_supported_browsers)
     browser_kind = [bk for bk in SupportedBrowsers if bk.value["name"] == browser_name][0]
     mysleep()
-    idp_login = config_parser.get_login(idp_nickname, use_stored)
-    mysleep()
-    idp_password = config_parser.get_password(idp_nickname, use_stored)
-    mysleep()
-    browser = start_browser(show_browser=True if first_time else show_browser,
+    if not use_browser:
+        idp_login = config_parser.get_login(idp_nickname, use_stored)
+        mysleep()
+        idp_password = config_parser.get_password(idp_nickname, use_stored)
+        mysleep()
+    browser = start_browser(show_browser=True if first_time or use_browser else show_browser,
                             browser_kind=browser_kind,
                             user_data_dir=user_data_dir)
     if first_time:
@@ -222,29 +224,30 @@ def login_and_get_assertion(show_browser: bool=False,
         browser.get(idpentryurl)
         mysleep()
         try:
-            # wait until
-            # screen shows already known logins OR
-            # screen shows the input box with the login element OR
-            # screen goes directly to AWS page because every thing is already setup
-            next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
-                EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
-                        EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
-                        EC.url_contains("aws.amazon.com")
-                        ))
-            if isinstance(next_elem, WebElement):
-                # in case screen does not go directlty to AWS page
-                mysleep()
-                try:
-                    # in case of login screen
-                    next_elem.click()
-                    # in case of input box, enter the login
-                    if next_elem.get_attribute('name') == 'loginfmt':
-                        next_elem.send_keys(idp_login + Keys.ENTER)
-                except ElementClickInterceptedException:
-                    # this happens when login screen is skipped and password or mfa screen is shown
-                    pass
-                # handle pasword and/or MFA directly in case of passwordless
-                handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
+            if not use_browser:
+                # wait until
+                # screen shows already known logins OR
+                # screen shows the input box with the login element OR
+                # screen goes directly to AWS page because every thing is already setup
+                next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+                    EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
+                            EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
+                            EC.url_contains("aws.amazon.com")
+                            ))
+                if isinstance(next_elem, WebElement):
+                    # in case screen does not go directlty to AWS page
+                    mysleep()
+                    try:
+                        # in case of login screen
+                        next_elem.click()
+                        # in case of input box, enter the login
+                        if next_elem.get_attribute('name') == 'loginfmt':
+                            next_elem.send_keys(idp_login + Keys.ENTER)
+                    except ElementClickInterceptedException:
+                        # this happens when login screen is skipped and password or mfa screen is shown
+                        pass
+                    # handle pasword and/or MFA directly in case of passwordless
+                    handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
             try:
                 # last step: wait until AWS SAML homepage displays and return assertion

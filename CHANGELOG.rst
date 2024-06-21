@@ -2,32 +2,15 @@
 Changelog
 =========
 
-0.2.7 (2024-06-19)
+0.2.2 (2024-06-21)
 ------------------
 
-* Restrict usage to Microsoft Edge browser
-* Detect first use, open help page with animated gif, and adapt behavior accordingly
-
-0.2.6 (2024-06-18)
-------------------
-
-* Create a fresh profile for Edge or Chrome per identity provider
-* Remove ``--use-browser`` option and keep ``--show-browser`` (i.e. without headless mode)
-
-0.2.5 (2024-06-17)
-------------------
-
-* Introduce Microsoft Edge browser as an option
-* Ask for and use Chrome or Edge profile path
-* Use driver from `webdriver_manager` library instead of installing it on OS
-
-0.2.4 (2023-10-25)
-------------------
-
-* Add the ability to run with headless browser, inputing information in CLI
+* Add the ability to run with headless browser and input information in CLI
 * Headless is designed for Microsoft AD login pages. Browser can still be used with ``--use-browser``
+* Ask for a nickname for each identity provider
 * Store information in ``~/.awscli_saml_sso_credentials`` and passwords in python Keyring
-* Add a ``--get-chrome-driver`` to get Google Chrome driver
+* Support only Microsoft Edge browser  for maximum compatibility, creating a dedicated persistent profile in ``~/.awscli_saml_sso_credentials`` for each identity provider
+* Detect first use, open help page with animated gif, and adapt behavior accordingly
 * Bump Selenium and Selenium wire versions
 
 0.2.1 (2020-12-11)
