@@ -40,7 +40,6 @@ You only need to run the following command in terminal:
 
     awscli_saml_sso
 
-    # Please enter your identity provider url of the form https://<fqdn>:<port>/adfs/ls/IdpInitiatedSignOn.aspx?loginToRp=urn:amazon:webservices
     > ...
 
     # Please choose the role you would like to assume:
@@ -67,6 +66,8 @@ You only need to run the following command in terminal:
 4. provide a ``saml`` profile in ``/home/.aws/credentials`` filled with temporary credentials
 
 You can see what is happening in the web browser by appending ``--show-browser`` (headless mode is not used)
+
+You can also use the browser to input username and passord by appending ``--use-browser`` (headless mode is not used)
 
 After a successfull run with identiy provider nickname `MyTenant`, you can run this to avoid any prompt other than MFA
 
@@ -223,7 +224,7 @@ Development
 -----------
 
 If you would like to setup awscli-saml-sso for local development, please read the following section.
-Before beginning, ensure to comply with requirements defined in :ref:`requirements` section.
+Before beginning, ensure to comply with requirements defined in :ref:`_requirements` section.
 
 You should create a python virtual environment:
 
@@ -268,7 +269,7 @@ To prevent having to manually setup these requirements, you will find a ready to
 This configuration will setup the following environment:
 
 * An instance of `localstack <https://github.com/localstack/localstack>`_ which aims to replicate AWS services locally
-* A configured `keycloak <https://github.com/keycloak/keycloak>`_ server
+* A configured `keycloak <https://github.com/keycloak/keycloak>`_ server, which will act as your identity provider
 * A postgresql instance as a database backend required for keycloak server
 
 To setup this environment, just execute the following command:
@@ -282,12 +283,18 @@ You can run awscli-saml-sso this way to target localstack services endpoint inst
 
 .. code-block:: shell
 
-    awscli_saml_sso --endpoint-url=http://localhost:4566 --show-browser
+    awscli_saml_sso --endpoint-url=http://localhost:4566 --use-browser --show-browser
     # OR
-    ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso --show-browser
+    ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso --use-browser --show-browser
 
-You can now use the following url as your identity provider url when asked by awscli-saml-sso: http://localhost:8080/auth/realms/master/protocol/saml/clients/amazon-aws
-If needed, you will find more details about the local environment setup in the following sections.
+Then create a new IDP by enetering `+`, providing a name such as `LocalStack` and url `http://localhost:8080/auth/realms/master/protocol/saml/clients/amazon-aws`
+.. image:: ./docs/images/local_dev.png
+  :alt: Local run
+
+Once the Keycloack page is displayed on Edge browser, you can use one of these credentials :
+- `aws_user` => You should get credentials for `Role.User`
+- `aws_admin`=> You should be able to choose between two AWS roles : `Role.User` and `Role.Admin`
+- `aws_void` => You should get no credentials because `the account is not associated to any role`
 
 Localstack
 ^^^^^^^^^^

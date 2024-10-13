@@ -214,8 +214,11 @@ def login_and_get_assertion(show_browser: bool=False,
     browser = start_browser(show_browser=True if first_time or use_browser else show_browser,
                             browser_kind=browser_kind,
                             user_data_dir=user_data_dir)
+    
+    idp_is_microsoft = True if urlparse(idpentryurl).netloc.endswith("microsoft.com") else False
+    
     try:
-        if first_time:
+        if first_time and idp_is_microsoft:
             browser.get(f"file://{Path(module_path[0]) / 'first_time.html'}")
             radio_button = browser.find_element(By.ID, "radio")
             WebDriverWait(browser, navigation_timeout).until(EC.element_to_be_selected(radio_button))
