@@ -5,6 +5,8 @@ include LICENSE
 include README.rst
 
 include awscli_saml_sso/logger.cfg
+include awscli_saml_sso/animated.gif
+include awscli_saml_sso/first_time.html
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

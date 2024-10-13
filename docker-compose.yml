@@ -3,7 +3,7 @@ version: '3.7'
 services:
   keycloak:
     container_name: ass-keycloak
-    image: jboss/keycloak:11.0.3
+    image: quay.io/keycloak/keycloak:11.0.3
     command: >
       -Dkeycloak.migration.action=import
       -Dkeycloak.migration.provider=singleFile
