@@ -287,14 +287,29 @@ You can run awscli-saml-sso this way to target localstack services endpoint inst
     # OR
     ASS_ENDPOINT_URL=http://localhost:4566 awscli_saml_sso --use-browser --show-browser
 
-Then create a new IDP by enetering `+`, providing a name such as `LocalStack` and url `http://localhost:8080/auth/realms/master/protocol/saml/clients/amazon-aws`
+Then create a new IDP by enetering ``+``, providing a name such as ``LocalStack`` and url ``http://localhost:8080/auth/realms/master/protocol/saml/clients/amazon-aws``
+
 .. image:: ./docs/images/local_dev.png
   :alt: Local run
 
 Once the Keycloack page is displayed on Edge browser, you can use one of these credentials :
-- `aws_user` => You should get credentials for `Role.User`
-- `aws_admin`=> You should be able to choose between two AWS roles : `Role.User` and `Role.Admin`
-- `aws_void` => You should get no credentials because `the account is not associated to any role`
+
+.. list-table:: 
+   :widths: 10 10 90
+   :header-rows: 1
+
+   * - Username
+     - Password
+     - Behavior
+   * - ``aws_user``
+     - ``aws_user``
+     - You should get credentials for ``Role.User``
+   * - ``aws_admin``
+     - ``aws_admin``
+     - You should be able to choose between two AWS roles : ``Role.User`` and ``Role.Admin``
+   * - ``aws_void``
+     - ``aws_void``
+     - You should get no credentials because `the account is not associated to any role`
 
 Localstack
 ^^^^^^^^^^
