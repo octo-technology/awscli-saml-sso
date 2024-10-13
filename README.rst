@@ -224,7 +224,7 @@ Development
 -----------
 
 If you would like to setup awscli-saml-sso for local development, please read the following section.
-Before beginning, ensure to comply with requirements defined in :ref:`_requirements` section.
+Before beginning, ensure to comply with requirements defined in Requirements section.
 
 You should create a python virtual environment:
 
