@@ -14,6 +14,7 @@ AWSCLI SAML SSO
 awscli_saml_sso is a command line tool that aims to get temporary credentials from SAML identity provider in order to authenticate to awscli.
 
 .. _requirements:
+
 Requirements
 ------------
 
@@ -21,6 +22,7 @@ Requirements
 * Microsoft Edge web browser installed on operating system
 
 .. _installation:
+
 Installation
 ------------
 
@@ -31,6 +33,7 @@ You need a fully functional python 3 environment, then you can install tool from
     pip install awscli-saml-sso
 
 .. _usage:
+
 Usage
 -----
 
@@ -88,6 +91,7 @@ OR
     AWS_PROFILE=saml aws ec2 describe-instances
 
 .. _features:
+
 Features
 --------
 
@@ -96,6 +100,7 @@ Features
 * Store temporary credentials in aws configuration files
 
 .. _how-it-works:
+
 How it works
 ------------
 
@@ -180,7 +185,7 @@ AWS STS response will be retrieved and stored in a ``saml`` profile configured t
     config.set("saml", "aws_security_token", sts_response["Credentials"]["SessionToken"])
 
 
-Note that you can call `assume-role-with-saml <https://docs.aws.amazon.com/cli/latest/reference/sts/assume-role-with-saml.html> directly from ``awscli`` this way:
+Note that you can call `assume-role-with-saml <https://docs.aws.amazon.com/cli/latest/reference/sts/assume-role-with-saml.html>`_ directly from ``awscli`` this way:
 
 .. code-block:: shell
 
@@ -211,7 +216,8 @@ Note that you can call `assume-role-with-saml <https://docs.aws.amazon.com/cli/l
         "NameQualifier": "B64EncodedStringOfHashOfIssuerAccountIdAndUserId="
     }
 
-.. _contributing:
+.. _contributing_details:
+
 Contributing
 ------------
 
@@ -220,6 +226,7 @@ Please make sure to update tests as appropriate.
 For further information, please read `CONTRIBUTING <CONTRIBUTING.rst>`_ document.
 
 .. _development:
+
 Development
 -----------
 
@@ -309,7 +316,7 @@ Once the Keycloack page is displayed on Edge browser, you can use one of these c
      - You should be able to choose between two AWS roles : ``Role.User`` and ``Role.Admin``
    * - ``aws_void``
      - ``aws_void``
-     - You should get no credentials because `the account is not associated to any role`
+     - You should get no credentials because ``the account is not associated to any role``
 
 Localstack
 ^^^^^^^^^^
@@ -394,6 +401,7 @@ When you read above logs, you can hit ``CTRL+C`` to stop running instance.
 You will find a ``master-realm-with-users.json`` file in ``export`` directory created in your current path.
 
 .. _credits:
+
 Credits
 -------
 
@@ -401,6 +409,7 @@ Credits
 `AWS SAML based User Federation using Keycloak <https://neuw.medium.com/aws-connect-saml-based-identity-provider-using-keycloak-9b3e6d0111e6>`_
 
 .. _license:
+
 License
 -------
 
