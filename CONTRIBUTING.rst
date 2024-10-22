@@ -98,9 +98,9 @@ Deploying to PyPI
 
 A reminder for the maintainers on how to deploy.
 
-1. Make sure all your changes are committed (including an entry in CHANGELOG.rst **with the new version**).
+1. Make sure all your changes are committed (including an entry in CHANGELOG.rst).
 
-2. **Do not** update manually version in ``setup.cfg`` or ``setup.py`` or ``__init__.py``. Instead, run::
+2. Then run::
 
     $ bump2version patch # possible: major / minor / patch
     $ git push
