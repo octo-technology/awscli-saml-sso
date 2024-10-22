@@ -1,5 +1,3 @@
-.. highlight:: shell
-
 ============
 Contributing
 ============
@@ -95,15 +93,30 @@ Before you submit a pull request, check that it meets these guidelines:
 2. The pull request should work for Python 3.8 to 3.11, and for PyPy.
 
 
-Deploying
----------
+Deploying to PyPI
+-----------------
 
 A reminder for the maintainers on how to deploy.
-Make sure all your changes are committed (including an entry in CHANGELOG.rst).
-Then run::
 
-$ bump2version patch # possible: major / minor / patch
-$ git push
-$ git push --tags
+1. Make sure all your changes are committed (including an entry in CHANGELOG.rst).
 
-Travis will then deploy to PyPI if tests pass.
+2. Then run::
+
+    $ bump2version patch # possible: major / minor / patch
+    $ git push
+    $ git push --tags
+
+3. Ask to be added to the `PyPI project <https://pypi.org/project/awscli-saml-sso/) and get an API token from ``https://pypi.org/manage/account/token>`_
+
+4. Add this content to ``~/.pypirc``::
+
+    [distutils]
+    index-servers =
+        pypi
+        awscli-saml-sso
+
+    [pypi]
+    username = __token__
+    password = <YOUR TOKEN>
+
+5. Deplpy by running  ``make release``
