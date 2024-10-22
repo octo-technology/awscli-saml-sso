@@ -8,7 +8,7 @@ with open("README.rst") as readme_file:
 
 setup(
     name="awscli_saml_sso",
-    version="0.2.2",
+    version="0.2.3",
 
     author="Benjamin Brabant",
     author_email="benjamin.brabant@octo.com",
