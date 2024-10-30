@@ -9,7 +9,7 @@ Changelog
 * Headless is designed for Microsoft AD login pages. Browser can still be used with ``--use-browser``
 * Ask for a nickname for each identity provider
 * Store information in ``~/.awscli_saml_sso_credentials`` and passwords in python Keyring
-* Support only Microsoft Edge browser  for maximum compatibility, creating a dedicated persistent profile in ``~/.awscli_saml_sso_credentials`` for each identity provider
+* Support only Microsoft Edge browser for maximum compatibility, creating a dedicated persistent profile in ``~/.awscli_saml_sso_credentials`` for each identity provider
 * Detect first use, open help page with animated gif, and adapt behavior accordingly
 * Bump Selenium and Selenium wire versions
 
