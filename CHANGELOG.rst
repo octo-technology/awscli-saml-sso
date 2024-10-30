@@ -2,7 +2,7 @@
 Changelog
 =========
 
-0.2.2 (2024-06-21)
+0.3.0 (2024-10-07)
 ------------------
 
 * Add the ability to run with headless browser and input information in CLI
