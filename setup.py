@@ -39,12 +39,12 @@ setup(
         "selenium==4.21.0",
         "selenium-wire==5.1.0",
         "webdriver-manager==4.0.1",
-        "keyring",
-        "blinker<1.8.0",
+        "keyring==25.4.1",
+        "blinker==1.7.0",
         "pyopenssl==22.0.0",
         "cryptography==38.0.4",
         "h2==4.1.0",
-        "setuptools"
+        "setuptools==65.5.0"
     ],
     entry_points={
         "console_scripts": [
