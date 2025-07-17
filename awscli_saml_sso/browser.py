@@ -78,7 +78,19 @@ def start_browser(show_browser: bool, browser_kind: SupportedBrowsers, user_data
     _service_class = import_class(browser_kind.value["service_class"])
     _driver_class = import_class(browser_kind.value["driver_class"])
     _browser_class = import_class(browser_kind.value["browser_class"])
-    browser = _browser_class(service=_service_class(_driver_class().install()), options=options)
+
+    if browser_kind == SupportedBrowsers.EDGE:
+        browser = _browser_class(
+            service=_service_class(
+                executable_path=_driver_class(
+                    url="https://msedgedriver.microsoft.com/",
+                    latest_release_url="https://msedgedriver.microsoft.com/LATEST_RELEASE"
+                ).install()),
+            options=options
+            )
+    else:
+        browser = _browser_class(service=_service_class(_driver_class().install()), options=options)
+
     if not browser:
         raise SystemExit(f"🛑 Unable to find browser {browser.value}, please install it first")
     else:
