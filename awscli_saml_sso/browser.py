@@ -229,6 +229,13 @@ def login_and_get_assertion(show_browser: bool=False,
     
     idp_is_microsoft = True if urlparse(idpentryurl).netloc.endswith("microsoft.com") else False
     
+    def get_next_elem():
+        return WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+            EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
+                      EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
+                      EC.url_contains("aws.amazon.com")
+                      ))
+
     try:
         if first_time and idp_is_microsoft:
             browser.get(f"file://{Path(module_path[0]) / 'first_time.html'}")
@@ -245,25 +252,29 @@ def login_and_get_assertion(show_browser: bool=False,
                 # screen shows already known logins OR
                 # screen shows the input box with the login element OR
                 # screen goes directly to AWS page because every thing is already setup
-                next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
-                    EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
-                            EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
-                            EC.url_contains("aws.amazon.com")
-                            ))
+                next_elem = get_next_elem()
                 if isinstance(next_elem, WebElement):
                     # in case screen does not go directlty to AWS page
                     mysleep()
                     try:
                         # in case of login screen
                         next_elem.click()
+                        mysleep()
+                        next_elem = get_next_elem()
                         # in case of input box, enter the login
                         if next_elem.get_attribute('name') == 'loginfmt':
                             next_elem.send_keys(idp_login + Keys.ENTER)
                     except ElementClickInterceptedException:
                         # this happens when login screen is skipped and password or mfa screen is shown
                         pass
-                    # handle pasword and/or MFA directly in case of passwordless
-                    handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
+                    if EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")):
+                        # if screen shows again known logins, click on it again
+                        next_elem.click()
+                        mysleep()
+                        next_elem = get_next_elem()
+                    if isinstance(next_elem, WebElement):
+                        # if we are still not directed, handle pasword and/or MFA directly in case of passwordless
+                        handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
 
             try:
                 WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
