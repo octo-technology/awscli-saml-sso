@@ -205,6 +205,19 @@ def save_page(page_source: str, prefix: str):
         print(f'💾 Saved page {prefix} to {temp_file_name}, you can send it to support')
 
 
+def loop_account_selection(browser, idp_login: str, account_elem=None):
+    mysleep()
+    try:
+        if account_elem is None:
+            # wait till page changes and displays the account element
+            account_elem = WebDriverWait(browser, navigation_timeout).until(
+                EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")))
+        account_elem.click()
+    except StaleElementReferenceException as e:
+        print("🔄 Trying again")
+        loop_account_selection(browser, idp_login, None)
+
+
 def login_and_get_assertion(show_browser: bool=False,
                             use_browser: bool=False,
                             idp_nickname: str=None,
@@ -232,7 +245,6 @@ def login_and_get_assertion(show_browser: bool=False,
     def get_next_elem():
         return WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
             EC.any_of(EC.presence_of_element_located((By.NAME, "loginfmt")),
-                      EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")),
                       EC.url_contains("aws.amazon.com")
                       ))
 
@@ -248,34 +260,29 @@ def login_and_get_assertion(show_browser: bool=False,
 
         try:
             if not use_browser:
+                # in case screen shows already known logins
+                loop_account_selection(browser, idp_login)
                 # wait until
-                # screen shows already known logins OR
                 # screen shows the input box with the login element OR
                 # screen goes directly to AWS page because every thing is already setup
-                next_elem = get_next_elem()
+                next_elem = WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
+                    EC.any_of(
+                        EC.presence_of_element_located((By.NAME, "loginfmt")),
+                        EC.url_contains("aws.amazon.com")
+                    ))
                 if isinstance(next_elem, WebElement):
                     # in case screen does not go directlty to AWS page
                     mysleep()
                     try:
-                        # in case of login screen
-                        next_elem.click()
-                        mysleep()
-                        next_elem = get_next_elem()
-                        # in case of input box, enter the login
+                        # in case of login screen with input box, enter the login
                         if next_elem.get_attribute('name') == 'loginfmt':
+                            next_elem.click()
                             next_elem.send_keys(idp_login + Keys.ENTER)
-                    except ElementClickInterceptedException:
+                    except (ElementClickInterceptedException, ElementNotInteractableException):
                         # this happens when login screen is skipped and password or mfa screen is shown
                         pass
-                    if EC.presence_of_element_located((By.XPATH, f"//div[@data-test-id='{idp_login}']")):
-                        # if screen shows again known logins, click on it again
-                        next_elem.click()
-                        mysleep()
-                        next_elem = get_next_elem()
-                    if isinstance(next_elem, WebElement):
-                        # if we are still not directed, handle pasword and/or MFA directly in case of passwordless
-                        handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
-
+                    # handle pasword and/or MFA directly in case of passwordless
+                    handle_password_and_or_mfa(browser, config_parser, idp_nickname, idp_password)
             try:
                 WebDriverWait(browser, navigation_timeout, ignored_exceptions=ignored_exceptions).until(
                     EC.url_contains("aws.amazon.com"))
