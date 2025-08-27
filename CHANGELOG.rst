@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.3.3 (2025-08-27)
+------------------
+* Fix all dependencies
+* Fix invalide edge driver binary url
+* Fix the case when known microsoft logins are showed a second time
+
 0.3.0 (2024-10-07)
 ------------------
 
